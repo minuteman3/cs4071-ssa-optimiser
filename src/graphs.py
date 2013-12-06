@@ -140,6 +140,23 @@ class Graph(dict):
             dominator_tree.add_edges(*edges)
         return dominator_tree
 
+    """
+    Computes the dominance frontier of the given node.
+
+    Throws GraphException if no root node has been set.
+    """
+    def dominance_frontier(self, node):
+        frontier = [n for n in self if len([n1 for n1 in self.pred(n) if self.dom(node, n1)]) and not self.strict_dom(node, n)]
+        return set(frontier)
+
+    """
+    Computes the dominance frontiers of all nodes in the graph.
+
+    Throws GraphException if no root node has been set.
+    """
+    def dominance_frontiers(self):
+        return {node: self.dominance_frontier(node) for node in self}
+
 
 
 
@@ -167,7 +184,7 @@ def main():
     graph.add_edges(("start",1),(1,2),(2,3),(2,4),(3,5),(3,6),(5,7),(6,7),(7,2),(4,"exit"))
     graph.set_root("start")
 
-    print graph.dominator_tree()
+    print graph.dominance_frontiers()
 
 if __name__ == "__main__":
     main()
