@@ -1,26 +1,70 @@
 import copy
 
+class GraphException(Exception):
+    pass
+
 class Graph(dict):
-    def add_node(self, *nums):
-        for num in [num for num in nums if num not in self]:
-            self[num] = set([])
+    def __init__(self):
+        self.root = None
+        super(dict, self)
 
-    def add_edge(self, nfrom, nto):
-        self[nfrom] = self[nfrom].union(set([nto]))
+    """Set the root node of the graph"""
+    def set_root(self, node):
+        if node not in self:
+            raise GraphException("Cannot set root to node not in graph")
+        self.root = node
 
+    """
+    Add an arbitrary number of nodes to the graph. Duplicate nodes are
+    ignored.
+    """
+    def add_nodes(self, *nodes):
+        for node in [node for node in nodes if node not in self]:
+            self[node] = set([])
+
+    """
+    Add an arbitrary number of edges to the graph. Duplicate edges are
+    ignored.
+
+    Throws GraphException if an edge mentions a vertex that does not exist.
+    """
     def add_edges(self, *edges):
         for edge in edges:
+            if edge[0] not in self or edge[1] not in self:
+                raise GraphException("Cannot add edge {} to graph. One or more vertices mentioned does not exist.".format(edge))
             if edge[0] != edge[1]:
                 self[edge[0]] = self[edge[0]].union(set([edge[1]]))
 
+    """
+    Convenience method. Returns a Nodeset, a set-like
+    object that has had the - operator defined for set difference.
+    """
     def nodeset(self):
         return Nodeset(self.keys())
 
+    """
+    Returns the set of immediate predecessors for a given node.
+    """
     def pred(self, node):
         return set([k for k in self.nodeset() if node in self[k]])
 
-    def dominators(self, root):
-        assert(root in self)
+    """
+    Naive quadratic time dominators algorithm taken from
+
+        https://en.wikipedia.org/wiki/Dominator_%28graph_theory%29
+
+    Used because implementing Lengauer-Tarjan was too much effort.
+
+    Requires you to have set a root node for the graph. If you haven't,
+    defaults to using a node called "start".
+
+    Throws GraphException if the root node is not set and there is no
+    node named "start".
+    """
+    def dominators(self):
+        if self.root is None and "start" not in self:
+            raise GraphException("Requires a root node is set or 'start' exists in graph")
+        root = self.root if self.root else "start"
         dominators = {}
         temp = False
 
@@ -40,6 +84,10 @@ class Graph(dict):
         return dominators
 
 
+"""
+Convenience class. Set-like object defining - operator
+as set difference.
+"""
 class Nodeset(set):
     def __sub__(self, other):
         return self.difference(set([other]))
@@ -47,7 +95,7 @@ class Nodeset(set):
 
 graph = Graph()
 
-graph.add_node("start",1,2,3,4,5,6,7,"exit")
+graph.add_nodes("start",1,2,3,4,5,6,7,"exit")
 graph.add_edges(("start",1),(1,2),(2,3),(2,4),(3,5),(3,6),(5,7),(6,7),(7,2),(4,"exit"))
 
-print graph.dominators("start")
+print graph.dominators()
