@@ -6,12 +6,16 @@ class GraphException(Exception):
 class Graph(dict):
     def __init__(self):
         self.root = None
+        self.dominators = None
         super(dict, self)
 
     """Set the root node of the graph"""
     def set_root(self, node):
         if node not in self:
             raise GraphException("Cannot set root to node not in graph")
+        if node != self.root:
+            #Invalidate dominators if we're changing root
+            self.dominators = None
         self.root = node
 
     """
@@ -20,6 +24,7 @@ class Graph(dict):
     """
     def add_nodes(self, *nodes):
         for node in [node for node in nodes if node not in self]:
+            self.dominators = None
             self[node] = set([])
 
     """
@@ -33,6 +38,7 @@ class Graph(dict):
             if edge[0] not in self or edge[1] not in self:
                 raise GraphException("Cannot add edge {} to graph. One or more vertices mentioned does not exist.".format(edge))
             if edge[0] != edge[1]:
+                self.dominators = None
                 self[edge[0]] = self[edge[0]].union(set([edge[1]]))
 
     """
@@ -81,6 +87,7 @@ class Graph(dict):
                     predom = predom.intersection(dominators[pred])
                 dominators[node] = set([node]).union(predom)
 
+        self.dominators = dominators
         return dominators
 
 
