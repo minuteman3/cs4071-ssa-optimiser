@@ -6,7 +6,7 @@ class GraphException(Exception):
 class Graph(dict):
     def __init__(self):
         self.root = None
-        self.dominators = None
+        self.dominator_sets = None
         super(dict, self)
 
     """Set the root node of the graph"""
@@ -15,7 +15,7 @@ class Graph(dict):
             raise GraphException("Cannot set root to node not in graph")
         if node != self.root:
             #Invalidate dominators if we're changing root
-            self.dominators = None
+            self.dominator_sets = None
         self.root = node
 
     """
@@ -24,7 +24,7 @@ class Graph(dict):
     """
     def add_nodes(self, *nodes):
         for node in [node for node in nodes if node not in self]:
-            self.dominators = None
+            self.dominator_sets = None
             self[node] = set([])
 
     """
@@ -38,7 +38,7 @@ class Graph(dict):
             if edge[0] not in self or edge[1] not in self:
                 raise GraphException("Cannot add edge {} to graph. One or more vertices mentioned does not exist.".format(edge))
             if edge[0] != edge[1]:
-                self.dominators = None
+                self.dominator_sets = None
                 self[edge[0]] = self[edge[0]].union(set([edge[1]]))
 
     """
@@ -61,34 +61,91 @@ class Graph(dict):
 
     Used because implementing Lengauer-Tarjan was too much effort.
 
-    Requires you to have set a root node for the graph. If you haven't,
-    defaults to using a node called "start".
+    Requires you to have set a root node for the graph.
 
-    Throws GraphException if the root node is not set and there is no
-    node named "start".
+    Throws GraphException if no root node has been set.
     """
     def dominators(self):
-        if self.root is None and "start" not in self:
-            raise GraphException("Requires a root node is set or 'start' exists in graph")
-        root = self.root if self.root else "start"
+        if self.root is None:
+            raise GraphException("Requires a root node to be set")
         dominators = {}
-        temp = False
+        temp = None
 
-        dominators[root] = set([root])
+        dominators[self.root] = set([self.root])
 
-        for node in graph.nodeset() - root:
-            dominators[node] = graph.nodeset()
+        for node in self.nodeset() - self.root:
+            dominators[node] = self.nodeset()
 
         while temp != dominators:
             temp = copy.deepcopy(dominators)
-            for node in graph.nodeset() - root:
-                predom = graph.nodeset()
-                for pred in graph.pred(node):
+            for node in self.nodeset() - self.root:
+                predom = self.nodeset()
+                for pred in self.pred(node):
                     predom = predom.intersection(dominators[pred])
                 dominators[node] = set([node]).union(predom)
 
-        self.dominators = dominators
+        self.dominator_sets = dominators
         return dominators
+
+    """
+    True if node1 dominates node2
+
+    Throws GraphException if no root node has been set.
+    """
+    def dom(self, node1, node2):
+        if not self.dominator_sets:
+            self.dominators()
+        return node1 in self.dominator_sets[node2]
+
+
+    """
+    True if node1 strictly dominates node2
+
+    Throws GraphException if no root node has been set.
+    """
+    def strict_dom(self, node1, node2):
+        if not self.dominator_sets:
+            self.dominators()
+        return self.dom(node1, node2) and node1 != node2
+
+    """
+    Finds the immediate dominator of the given node if one exists.
+
+    Throws GraphException if no root node has been set.
+    """
+    def idom(self, node):
+        if not self.dominator_sets:
+            self.dominators()
+        strict_doms = [n for n in self if self.strict_dom(n, node)]
+        for dom in strict_doms:
+            if len([n for n in strict_doms if self.strict_dom(dom, n)]):
+                continue
+            else:
+                return dom
+
+    """
+    Returns the dominator tree of the graph it is called upon where
+    the dominator tree is a tree where each node's children are those
+    nodes it immediately dominates in the graph.
+
+    Throws GraphException if no root node has been set.
+    """
+    def dominator_tree(self):
+        if self.root is None:
+            raise GraphException("Requires a root node to be set")
+        dominator_tree = Graph()
+        dominator_tree.add_nodes(*self.keys())
+        for node in self:
+            edges = [(node,x) for x in self if self.idom(x) == node]
+            dominator_tree.add_edges(*edges)
+        return dominator_tree
+
+
+
+
+
+
+
 
 
 """
@@ -105,10 +162,12 @@ Main function to run whilst testing
 def main():
     graph = Graph()
 
+    #The graph we've been using all the time in class.
     graph.add_nodes("start",1,2,3,4,5,6,7,"exit")
     graph.add_edges(("start",1),(1,2),(2,3),(2,4),(3,5),(3,6),(5,7),(6,7),(7,2),(4,"exit"))
+    graph.set_root("start")
 
-    print graph.dominators()
+    print graph.dominator_tree()
 
 if __name__ == "__main__":
     main()
