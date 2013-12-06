@@ -91,11 +91,3 @@ as set difference.
 class Nodeset(set):
     def __sub__(self, other):
         return self.difference(set([other]))
-
-
-graph = Graph()
-
-graph.add_nodes("start",1,2,3,4,5,6,7,"exit")
-graph.add_edges(("start",1),(1,2),(2,3),(2,4),(3,5),(3,6),(5,7),(6,7),(7,2),(4,"exit"))
-
-print graph.dominators()
