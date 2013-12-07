@@ -9,7 +9,11 @@ class Graph(dict):
         self.dominator_sets = None
         super(dict, self)
 
-    """Set the root node of the graph"""
+    """
+    Set the root node of the graph
+
+    Throws GraphException if the node passed does not exist within the graph.
+    """
     def set_root(self, node):
         if node not in self:
             raise GraphException("Cannot set root to node not in graph")
