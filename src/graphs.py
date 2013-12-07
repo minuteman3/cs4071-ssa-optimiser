@@ -135,8 +135,8 @@ class Graph(dict):
             raise GraphException("Requires a root node to be set")
         dominator_tree = Graph()
         dominator_tree.add_nodes(*self.keys())
-        for node in self:
-            edges = [(node,x) for x in self if self.idom(x) == node]
+        for node1 in self:
+            edges = [(node1,node2) for node2 in self if self.idom(node2) == node1]
             dominator_tree.add_edges(*edges)
         return dominator_tree
 
@@ -157,13 +157,26 @@ class Graph(dict):
     def dominance_frontiers(self):
         return {node: self.dominance_frontier(node) for node in self}
 
+    """
+    Reverses all edges in the graph, returning the new reversed
+    graph. Optionally takes a node as a parameter and sets the
+    root of the newly reversed graph to that node.
 
-
-
-
-
-
-
+    Throws GraphException if a root for the reversed graph is
+    passed that does not exist within the graph.
+    """
+    def reverse(self, reverse_root=None):
+        reverse = Graph()
+        reverse.add_nodes(*self.keys())
+        if reverse_root is not None:
+            if reverse_root not in reverse:
+                raise GraphException("Node {} does not exist in the reverse graph".format(reverse_root))
+            else:
+                reverse.set_root(reverse_root)
+        for node1 in self:
+            edges = [(node1,node2) for node2 in self if node1 in self[node2]]
+            reverse.add_edges(*edges)
+        return reverse
 
 """
 Convenience class. Set-like object defining - operator
@@ -185,6 +198,7 @@ def main():
     graph.set_root("start")
 
     print graph.dominance_frontiers()
+    print graph.reverse("exit").dominance_frontiers()
 
 if __name__ == "__main__":
     main()
