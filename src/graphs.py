@@ -1,7 +1,9 @@
 import copy
 
+
 class GraphException(Exception):
     pass
+
 
 class Graph(dict):
     def __init__(self):
@@ -101,7 +103,6 @@ class Graph(dict):
             self.dominators()
         return node1 in self.dominator_sets[node2]
 
-
     """
     True if node1 strictly dominates node2
 
@@ -140,7 +141,7 @@ class Graph(dict):
         dominator_tree = Graph()
         dominator_tree.add_nodes(*self.keys())
         for node1 in self:
-            edges = [(node1,node2) for node2 in self if self.idom(node2) == node1]
+            edges = [(node1, node2) for node2 in self if self.idom(node2) == node1]
             dominator_tree.add_edges(*edges)
         return dominator_tree
 
@@ -171,16 +172,17 @@ class Graph(dict):
     """
     def reverse(self, reverse_root=None):
         if reverse_root is not None:
-            if reverse_root not in reverse:
+            if reverse_root not in self:
                 raise GraphException("Node {} does not exist in the reverse graph".format(reverse_root))
             else:
                 reverse = Graph()
                 reverse.add_nodes(*self.keys())
                 reverse.set_root(reverse_root)
                 for node1 in self:
-                    edges = [(node1,node2) for node2 in self if node1 in self[node2]]
+                    edges = [(node1, node2) for node2 in self if node1 in self[node2]]
                     reverse.add_edges(*edges)
                 return reverse
+
 
 """
 Convenience class. Set-like object defining - operator
@@ -190,6 +192,7 @@ class Nodeset(set):
     def __sub__(self, other):
         return self.difference(set([other]))
 
+
 """
 Main function to run whilst testing
 """
@@ -197,8 +200,8 @@ def main():
     graph = Graph()
 
     #The graph we've been using all the time in class.
-    graph.add_nodes("start",1,2,3,4,5,6,7,"exit")
-    graph.add_edges(("start",1),(1,2),(2,3),(2,4),(3,5),(3,6),(5,7),(6,7),(7,2),(4,"exit"))
+    graph.add_nodes("start", 1, 2, 3, 4, 5, 6, 7, "exit")
+    graph.add_edges(("start", 1), (1, 2), (2, 3), (2, 4), (3, 5), (3, 6), (5, 7), (6, 7), (7, 2), (4, "exit"))
     graph.set_root("start")
 
     print graph.dominance_frontiers()
