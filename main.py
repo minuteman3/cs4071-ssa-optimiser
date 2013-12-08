@@ -16,7 +16,7 @@ def main():
     try:
         infile = json.loads(args.input.read())
     except ValueError:
-        print >> stderr, "ERROR: Invalid JSON passed as input"
+        print("ERROR: Invalid JSON passed as input", file=stderr)
 
 
 if __name__ == "__main__":

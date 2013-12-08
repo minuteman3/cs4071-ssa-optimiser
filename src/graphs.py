@@ -204,8 +204,8 @@ def main():
     graph.add_edges(("start", 1), (1, 2), (2, 3), (2, 4), (3, 5), (3, 6), (5, 7), (6, 7), (7, 2), (4, "exit"))
     graph.set_root("start")
 
-    print graph.dominance_frontiers()
-    print graph.reverse("exit").dominance_frontiers()
+    print(graph.dominance_frontiers())
+    print(graph.reverse("exit").dominance_frontiers())
 
 if __name__ == "__main__":
     main()
