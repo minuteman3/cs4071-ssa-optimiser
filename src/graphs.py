@@ -170,17 +170,17 @@ class Graph(dict):
     passed that does not exist within the graph.
     """
     def reverse(self, reverse_root=None):
-        reverse = Graph()
-        reverse.add_nodes(*self.keys())
         if reverse_root is not None:
             if reverse_root not in reverse:
                 raise GraphException("Node {} does not exist in the reverse graph".format(reverse_root))
             else:
+                reverse = Graph()
+                reverse.add_nodes(*self.keys())
                 reverse.set_root(reverse_root)
-        for node1 in self:
-            edges = [(node1,node2) for node2 in self if node1 in self[node2]]
-            reverse.add_edges(*edges)
-        return reverse
+                for node1 in self:
+                    edges = [(node1,node2) for node2 in self if node1 in self[node2]]
+                    reverse.add_edges(*edges)
+                return reverse
 
 """
 Convenience class. Set-like object defining - operator
