@@ -1,15 +1,15 @@
 #!/usr/bin/env python
 from __future__ import print_function
-import argparse
-import json
+from argparse import ArgumentParser, FileType
 from sys import stderr
+import json
 
 
 def main():
-    parser = argparse.ArgumentParser()
+    parser = ArgumentParser()
     parser.add_argument('input',
                         nargs='?',
-                        type=argparse.FileType('r'),
+                        type=FileType('r'),
                         default='-')
 
     args = parser.parse_args()
