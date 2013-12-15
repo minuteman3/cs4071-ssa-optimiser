@@ -1,6 +1,8 @@
 from __future__ import print_function
 import copy
 
+from ordered_set import *
+
 
 class GraphException(Exception):
     pass
@@ -32,7 +34,7 @@ class Graph(dict):
     def add_nodes(self, *nodes):
         for node in [node for node in nodes if node not in self]:
             self.dominator_sets = None
-            self[node] = set([])
+            self[node] = OrderedSet()
 
     """
     Add an arbitrary number of edges to the graph. Duplicate edges are
@@ -46,7 +48,7 @@ class Graph(dict):
                 raise GraphException("Cannot add edge {} to graph. One or more vertices mentioned does not exist.".format(edge))
             if edge[0] != edge[1]:
                 self.dominator_sets = None
-                self[edge[0]] = self[edge[0]].union(set([edge[1]]))
+                self[edge[0]].add(edge[1])
 
     """
     Convenience method. Returns a Nodeset, a set-like
@@ -59,7 +61,9 @@ class Graph(dict):
     Returns the set of immediate predecessors for a given node.
     """
     def pred(self, node):
-        return set([k for k in self.nodeset() if node in self[k]])
+        s = OrderedSet()
+        s.update([k for k in self.nodeset() if node in self[k]])
+        return s
 
     """
     Naive quadratic time dominators algorithm taken from
