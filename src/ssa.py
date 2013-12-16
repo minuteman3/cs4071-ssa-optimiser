@@ -55,12 +55,14 @@ def renameVars(code, graph, blocks, block, done, counts, stacks):
         for stat in blocks[succ]['code']:
             if stat['op'] != 'phi':
                 break
+            
+            phiparam = "src" + str(index)
 
-            if stat['operands'][index] not in counts:
-                counts[stat['operands'][index]] = 0
-                stacks[stat['operands'][index]] = [0]
-
-            stat['operands'][index] = getName(stat['operands'][index], stacks[stat['operands'][index]][-1])
+            if stat[phiparam] not in counts:
+                counts[stat[phiparam]] = 0
+                stacks[stat[phiparam]] = [0]
+            
+            stat[phiparam] = getName(stat[phiparam], stacks[stat[phiparam]][-1])
     
     for succ in graph[block]:
         renameVars(code, graph, blocks, succ, done, counts, stacks)
@@ -102,7 +104,12 @@ def insertPhis(code, graph, blocks):
 
             for y in dominance_frontiers[n]:
                 if var not in phis[y]:
-                    blocks[y]['code'].insert(0, {"op": "phi", "dest": var, "operands": [var for _ in graph.pred(y)]})
+                    
+                    phi = {"op": "phi", "dest": var}
+                    for i in range(len(graph.pred(y))):
+                        phi["src" + str(i)] = var
+
+                    blocks[y]['code'].insert(0, phi)
 
                     phis[y].add(var)
 
