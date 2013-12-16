@@ -1,6 +1,17 @@
 import json
 from ssa import toSSA
 
+FOLDABLE_OPS = ["MUL","SUB","RSB","ADD"]
+
+def do_op(op, val1, val2):
+    return {
+        "MUL": val1 * val2,
+        "SUB": val1 - val2,
+        "RSB": val2 - val1,
+        "ADD": val1 + val2
+    }.get(op, None)
+
+
 def constant_propagation(code):
     worklist = []
     for block in code["blocks"]:
@@ -12,10 +23,11 @@ def constant_propagation(code):
             operands = s["operands"]
             if is_constant_phi(s):
                 convert_phi_to_copy(s)
+        if is_constant_val(s["src1"]) and is_constant_val(s["src2"]) and "src3" not in s:
+            fold_constant(s)
         if is_copy(s) and "src2" not in s:
             propagate_constant(code, worklist, s)
-        #if is_copy(s) and is_var(s["src1"]) and "src2" not in s:
-            #propagate_constant(code, worklist, s)
+            fold_constant(code, worklist, s)
 
 
 def is_constant_phi(statement):
@@ -27,6 +39,15 @@ def convert_phi_to_copy(statement):
     del statement["operands"]
     statement["op"] = "MOV"
     statement["src1"] = val
+
+def fold_constant(statement):
+    val1 = int(statement["src1"][1:])
+    val2 = int(statement["src2"][1:])
+    const = do_op(statement["op"], val1, val2)
+    if const is not None:
+        statement["op"] = "MOV"
+        statement["src1"] = "#" + str(const)
+        del statement["src2"]
 
 def is_constant_val(val):
     return val[0] == '#'
