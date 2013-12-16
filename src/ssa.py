@@ -6,7 +6,10 @@ import graphs
 def getName(name, num):
     return name + "-" + str(num)
         
-
+"""
+Helper function for renameVars
+Used to do the same operation on 'src1' and 'src2'
+"""
 def renamePart(part, stat, counts, stacks):
     if part in stat and stat[part][0] != '#':
         if stat[part] not in counts:
@@ -17,7 +20,11 @@ def renamePart(part, stat, counts, stacks):
         
         stat[part] = getName(stat[part], stacks[stat[part]][-1])
 
-
+"""
+Renames variables to convert to ssa.
+Operates in-place.
+Must be called on code that has already has phi functions.
+"""
 def renameVars(code, graph, blocks, block, done, counts, stacks):
 
     if block in done:
@@ -75,7 +82,7 @@ def renameVars(code, graph, blocks, block, done, counts, stacks):
 
 
 """
-Inserts phi fucntions into the graph where they are needed.
+Inserts phi functions into the graph where they are needed.
 Operates in-place.
 """
 def insertPhis(code, graph, blocks):
@@ -115,7 +122,11 @@ def insertPhis(code, graph, blocks):
 
                     if y not in defsites[var]:
                         worklist.add(y)
-    
+
+"""
+Converts code to SSA form.
+Operates in-place
+"""                         
 def toSSA(code):
     graph = graphs.Graph()
 
