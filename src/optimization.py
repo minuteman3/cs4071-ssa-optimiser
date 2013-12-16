@@ -10,12 +10,15 @@ def constant_propagation(code):
         s = worklist.pop(0)
         if s["op"] == "phi":
             operands = s["operands"]
-            if is_consant_phi(s):
+            if is_constant_phi(s):
                 convert_phi_to_copy(s)
+        if s["op"] == "MOV" and is_constant_val(s["src1"]) and "src2" not in s:
+            propagate_constant(code, worklist, s)
+
 
 def is_constant_phi(statement):
     operands =  statement["operands"]
-    return operands[0][0] == '#' and all(op == operands[0] for op in operands)
+    return is_constant_val(operands[0]) and all(op == operands[0] for op in operands)
 
 def convert_phi_to_copy(statement):
     val = statement["operands"][0]
@@ -23,12 +26,39 @@ def convert_phi_to_copy(statement):
     statement["op"] = "MOV"
     statement["src1"] = val
 
+def is_constant_val(val):
+    return val[0] == '#'
+
+def propagate_constant(code, worklist, statement):
+    val = statement["src1"]
+    var = statement["dest"]
+    remove_statement(code, statement)
+    for block in code["blocks"]:
+        for statement in block["code"]:
+            for field in statement:
+                if isinstance(statement[field], list):
+                    statement[field] = [val if x == var else x for x in statement[field]]
+                    if statement not in worklist:
+                        worklist.append(statement)
+                elif statement[field] == var:
+                    statement[field] = val
+                    if statement not in worklist:
+                        worklist.append(statement)
+
+def remove_statement(code, statement):
+    for block in code["blocks"]:
+        for i, s in enumerate(block["code"]):
+            if s == statement:
+                del block["code"][i]
+                return
+
 def main():
-    x = {'op':'phi','operands':['#1'],'dest':'x'}
-    #with open('example.json') as input_code:
-        #code = json.loads(input_code.read())
-        #toSSA(code)
-        #constant_propagation(code)
+    with open('example.json') as input_code:
+        code = json.loads(input_code.read())
+        toSSA(code)
+        constant_propagation(code)
+        print json.dumps(code, indent=4)
+
 
 
 if __name__ == "__main__":
