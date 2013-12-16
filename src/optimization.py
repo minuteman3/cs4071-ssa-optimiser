@@ -12,8 +12,10 @@ def constant_propagation(code):
             operands = s["operands"]
             if is_constant_phi(s):
                 convert_phi_to_copy(s)
-        if s["op"] == "MOV" and is_constant_val(s["src1"]) and "src2" not in s:
+        if is_copy(s) and "src2" not in s:
             propagate_constant(code, worklist, s)
+        #if is_copy(s) and is_var(s["src1"]) and "src2" not in s:
+            #propagate_constant(code, worklist, s)
 
 
 def is_constant_phi(statement):
@@ -28,6 +30,12 @@ def convert_phi_to_copy(statement):
 
 def is_constant_val(val):
     return val[0] == '#'
+
+def is_var(val):
+    return val[0] == 'R'
+
+def is_copy(statement):
+    return statement["op"] == "MOV"
 
 def propagate_constant(code, worklist, statement):
     val = statement["src1"]
