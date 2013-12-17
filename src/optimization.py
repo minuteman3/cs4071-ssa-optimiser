@@ -2,8 +2,8 @@ import json
 from ssa import toSSA
 from collections import defaultdict
 
-FOLDABLE_OPS = ["MUL","SUB","RSB","ADD"]
-NO_SIDE_EFFECTS = ["MOV","ADD","SUB","RSB","MUL"]
+FOLDABLE_OPS = ["MUL", "SUB", "RSB", "ADD"]
+NO_SIDE_EFFECTS = ["MOV", "ADD", "SUB", "RSB", "MUL"]
 
 """
 Switch statement used by constant folding optimization, instructing the
@@ -118,6 +118,7 @@ True if statement is a copy operation, ie. statement["op"] == "MOV.
 def is_copy(statement):
     return statement["op"] == "MOV"
 
+
 def propagate_constant(code, worklist, statement):
     val = statement["src1"]
     var = statement["dest"]
@@ -172,7 +173,10 @@ def get_variables(code):
                         if x.startswith("src") and is_var(statement[x])]:
                 if "uses" not in variables[var]:
                     variables[var]["uses"] = []
-                variables[var]["uses"].append({"block":block["name"], "statement":idx})
+                variables[var]["uses"].append({
+                    "block": block["name"],
+                    "statement": idx
+                })
     for v in variables:
         if "uses" not in variables[v]:
             variables[v]["uses"] = []
@@ -192,7 +196,7 @@ def dead_code_elimination(code):
         v = worklist.pop(0)
         if not len(variables[v]["uses"]):
             s = variables[v]["def_site"]["statement"]
-            for idx,block in enumerate(code["blocks"]):
+            for idx, block in enumerate(code["blocks"]):
                 if block["name"] == variables[v]["def_site"]["block"]:
                     b = idx
                     break
@@ -202,12 +206,16 @@ def dead_code_elimination(code):
                     if is_var(var) and var not in worklist:
                         worklist.append(var)
                 code["blocks"][b]["code"][s]["delete"] = True
+    delete_marked_statements(code)
+
+"""
+Iterates over all blocks and deletes any statements marked for deletion.
+"""
+def delete_marked_statements(code):
     for block in code["blocks"]:
-        for idx,statement in enumerate(block["code"]):
+        for idx, statement in enumerate(block["code"]):
             if "delete" in statement:
                 del block["code"][idx]
-
-
 
 def main():
     with open('example.json') as input_code:
@@ -216,7 +224,6 @@ def main():
         dead_code_elimination(code)
         constant_propagation(code)
         print json.dumps(code, indent=4)
-
 
 
 if __name__ == "__main__":
