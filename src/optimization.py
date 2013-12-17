@@ -3,6 +3,7 @@ from ssa import toSSA
 from collections import defaultdict
 
 FOLDABLE_OPS = ["MUL","SUB","RSB","ADD"]
+NO_SIDE_EFFECTS = ["MOV","ADD","SUB","RSB","MUL"]
 
 def do_op(op, val1, val2):
     return {
@@ -78,22 +79,10 @@ def remove_statement(code, statement):
                 del block["code"][i]
                 return
 
-def build_datastructures(code):
-    statements = []
+def get_variables(code):
     variables = defaultdict(dict)
-    blocks = code["blocks"]
-    for block in blocks:
+    for block in code["blocks"]:
         for idx, statement in enumerate(block["code"]):
-            #statement_info = {
-                #"containing_block": block["name"],
-                #"previous_statement": block["code"][idx - 1] if idx > 0 else None,
-                #"next_statement": block["code"][idx + 1] if idx < len(block["code"]) - 1 else None,
-                #"vars_defined": statement["dest"] if "dest" in statement else None,
-                #"vars_used": [statement[x] for x in statement.keys()
-                              #if x.startswith("src") and is_var(statement[x])],
-                #"statement_idx": idx
-            #}
-            #statements.append(statement_info)
             if "dest" in statement:
                 variables[statement["dest"]]["def_site"] = {
                     "block": block["name"],
@@ -105,17 +94,34 @@ def build_datastructures(code):
                     variables[var]["uses"] = []
                     variables[var]["uses"].append({"block":block["name"], "statement":idx})
 
-    return blocks, statements, variables
+    return variables
+
+def dead_code_elimination(code):
+    variables = get_variables(code)
+    worklist = variables.keys()
+
+    while len(worklist):
+        v = worklist.pop(0)
+        if not len(variables[v]["uses"]):
+            s = variables[v]["def_site"]["statement"]
+            for idx,block in enumerate(code["blocks"]):
+                if block["name"] == variables[v]["def_site"]["block"]:
+                    b = idx
+                    break
+            if code["blocks"][b][s]["op"] in NO_SIDE_EFFECTS:
+                for var in [statement[x] for x in code["blocks"][b][s] if x.startswith("src")]:
+                    if var not in worklist:
+                        worklist.append(var)
+                print "Deleting {}".format(json.dumps(code["blocks"][b][s], indent=4))
+                del code["blocks"][b][s]
+
 
 def main():
     with open('example.json') as input_code:
         code = json.loads(input_code.read())
         toSSA(code)
-        b, s, v = build_datastructures(code)
-        #print json.dumps(s, indent=4)
-        #print json.dumps(v, indent=4)
+        dead_code_elimination(code)
         constant_propagation(code)
-        #print json.dumps(b, indent=4)
         print json.dumps(code, indent=4)
 
 
