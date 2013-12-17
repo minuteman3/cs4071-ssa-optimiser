@@ -120,7 +120,12 @@ def dead_code_elimination(code):
                             code["blocks"][b]["code"][s] if x.startswith("src")]:
                     if is_var(var) and var not in worklist:
                         worklist.append(var)
-                del code["blocks"][b]["code"][s]
+                code["blocks"][b]["code"][s]["delete"] = True
+    for block in code["blocks"]:
+        for idx,statement in enumerate(block["code"]):
+            if "delete" in statement:
+                del block["code"][idx]
+
 
 
 def main():
