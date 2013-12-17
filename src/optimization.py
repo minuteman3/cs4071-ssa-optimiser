@@ -23,11 +23,11 @@ def constant_propagation(code):
             operands = s["operands"]
             if is_constant_phi(s):
                 convert_phi_to_copy(s)
-        if is_constant_val(s["src1"]) and is_constant_val(s["src2"]) and "src3" not in s:
-            fold_constant(s)
+        if s["op"] in FOLDABLE_OPS:
+            if is_constant_val(s["src1"]) and is_constant_val(s["src2"]):
+                fold_constant(s)
         if is_copy(s) and "src2" not in s:
             propagate_constant(code, worklist, s)
-            fold_constant(code, worklist, s)
 
 
 def is_constant_phi(statement):
