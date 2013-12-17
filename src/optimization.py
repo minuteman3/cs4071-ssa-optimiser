@@ -1,5 +1,6 @@
 import json
 from ssa import toSSA
+from collections import defaultdict
 
 FOLDABLE_OPS = ["MUL","SUB","RSB","ADD"]
 
@@ -20,7 +21,6 @@ def constant_propagation(code):
     while len(worklist):
         s = worklist.pop(0)
         if s["op"] == "phi":
-            operands = s["operands"]
             if is_constant_phi(s):
                 convert_phi_to_copy(s)
         if s["op"] in FOLDABLE_OPS:
@@ -81,12 +81,45 @@ def remove_statement(code, statement):
                 del block["code"][i]
                 return
 
+def build_datastructures(code):
+    statements = []
+    variables = defaultdict(dict)
+    blocks = code["blocks"]
+    for block in blocks:
+        for idx, statement in enumerate(block["code"]):
+            #statement_info = {
+                #"containing_block": block["name"],
+                #"previous_statement": block["code"][idx - 1] if idx > 0 else None,
+                #"next_statement": block["code"][idx + 1] if idx < len(block["code"]) - 1 else None,
+                #"vars_defined": statement["dest"] if "dest" in statement else None,
+                #"vars_used": [statement[x] for x in statement.keys()
+                              #if x.startswith("src") and is_var(statement[x])],
+                #"statement_idx": idx
+            #}
+            #statements.append(statement_info)
+            if "dest" in statement:
+                variables[statement["dest"]]["def_site"] = {
+                    "block": block["name"],
+                    "statement": idx
+                }
+            for var in [statement[x] for x in statement
+                        if x.startswith("src") and is_var(statement[x])]:
+                if "uses" not in variables[var]:
+                    variables[var]["uses"] = []
+                    variables[var]["uses"].append({"block":block["name"], "statement":idx})
+
+    return blocks, statements, variables
+
 def main():
     with open('example.json') as input_code:
         code = json.loads(input_code.read())
         toSSA(code)
+        b, s, v = build_datastructures(code)
+        #print json.dumps(s, indent=4)
+        print json.dumps(v, indent=4)
         constant_propagation(code)
-        print json.dumps(code, indent=4)
+        #print json.dumps(b, indent=4)
+        #print json.dumps(code, indent=4)
 
 
 
