@@ -1,0 +1,121 @@
+{
+    "_comment": "This is the example from class that reduces to return 1. R1 is I, R2 is J, R3 is K",
+    "blocks": [
+        {
+            "name": "b1",
+            "code": [
+                {
+                    "op": "MOV",
+                    "dest": "R1",
+                    "src1": "#1"
+                },
+                {
+                    "op": "MOV",
+                    "dest": "R2",
+                    "src1": "#1"
+                },
+                {
+                    "op": "MOV",
+                    "dest": "R3",
+                    "src1": "#0"
+                }
+            ],
+            "next_block": [
+                "b2"
+            ]
+        },
+        {
+            "name": "b2",
+            "code": [
+                {
+                    "op": "CMP",
+                    "src1": "R3",
+                    "src2": "#100"
+                },
+                {
+                    "op": "BLT"
+                }
+            ],
+            "next_block": [
+                "b3",
+                "b4"
+            ]
+        },
+        {
+            "name": "b3",
+            "code": [
+                {
+                    "op": "CMP",
+                    "src1": "R2",
+                    "src2": "#20"
+                },
+                {
+                    "op": "BLT"
+                }
+            ],
+            "next_block": [
+                "b5",
+                "b6"
+            ]
+        },
+        {
+            "name": "b4",
+            "code": [
+                {
+                    "op": "MOV",
+                    "dest": "R0",
+                    "src1": "R2"
+                },
+                {
+                    "op": "return"
+                }
+            ],
+            "next_block": []
+        },
+        {
+            "name": "b5",
+            "code": [
+                {
+                    "op": "MOV",
+                    "dest": "R2",
+                    "src1": "R1"
+                },
+                {
+                    "op": "ADD",
+                    "dest": "R3",
+                    "src1": "R3",
+                    "src2": "#1"
+                }
+            ],
+            "next_block": [
+                "b7"
+            ]
+        },
+        {
+            "name": "b6",
+            "code": [
+                {
+                    "op": "MOV",
+                    "dest": "R2",
+                    "src1": "R3"
+                },
+                {
+                    "op": "ADD",
+                    "dest": "R3",
+                    "src1": "R3",
+                    "src2": "#2"
+                }
+            ],
+            "next_block": [
+                "b7"
+            ]
+        },
+        {
+            "name": "b7",
+            "code": [],
+            "next_block": [
+                "b2"
+            ]
+        }
+    ]
+}
