@@ -220,7 +220,7 @@ def delete_marked_statements(code):
 def main():
     with open('example.json') as input_code:
         code = json.loads(input_code.read())
-        toSSA(code)
+        cfg = toSSA(code)
         dead_code_elimination(code)
         constant_propagation(code)
         print json.dumps(code, indent=4)
