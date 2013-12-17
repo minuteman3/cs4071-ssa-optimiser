@@ -14,7 +14,7 @@ in `vals` should be of type int.
 
 Throws TypeError if all vals are not ints.
 """
-def do_op(op, *vals):
+def _do_op(op, *vals):
     if not all(isinstance(val, int) for val in vals):
         raise TypeError
     return {
@@ -48,29 +48,29 @@ def constant_propagation(code):
             worklist.append(statement)
     while len(worklist):
         s = worklist.pop(0)
-        if is_constant_phi(s):
-            convert_phi_to_copy(s)
+        if _is_constant_phi(s):
+            _convert_phi_to_copy(s)
         if s["op"] in FOLDABLE_OPS:
-            if is_constant_val(s["src1"]) and is_constant_val(s["src2"]):
-                fold_constant(s)
-        if is_copy(s) and "src2" not in s:
-            propagate_constant(code, worklist, s)
+            if _is_constant_val(s["src1"]) and _is_constant_val(s["src2"]):
+                _fold_constant(s)
+        if _is_copy(s) and "src2" not in s:
+            _propagate_constant(code, worklist, s)
 
 
 """
 Returns true if a statement is a Phi function and all operands of the phi
 function are the same constant value.
 """
-def is_constant_phi(statement):
+def _is_constant_phi(statement):
     operands = [statement[x] for x in statement if x.startswith("src")]
     return (statement["op"] == "phi" and
             all(op == operands[0] for op in operands))
 
 """
 Updates a statement in place, converting a phi function into a copy operation.
-Corrupts code unless `is_constant_phi(statement)` is true.
+Corrupts code unless `_is_constant_phi(statement)` is true.
 """
-def convert_phi_to_copy(statement):
+def _convert_phi_to_copy(statement):
     val = statement["src1"]
     for src in [x for x in statement if x.startswith("src")]:
         del statement[src]
@@ -83,18 +83,18 @@ three predicates must be true:
 
     * All src parameters for the statement must be constant values.
     * statement["op"] must be in FOLDABLE_OPS
-    * statement["op"] must have a case in `do_op`
+    * statement["op"] must have a case in `_do_op`
 
-If any of these predicates are false calling fold_constant(statement) will have
+If any of these predicates are false calling _fold_constant(statement) will have
 no effect on `statement`.
 """
-def fold_constant(statement):
+def _fold_constant(statement):
     try:
         val1 = int(statement["src1"][1:])
         val2 = int(statement["src2"][1:])
     except ValueError:
         return
-    const = do_op(statement["op"], val1, val2)
+    const = _do_op(statement["op"], val1, val2)
     if const is not None:
         statement["op"] = "MOV"
         statement["src1"] = "#" + str(const)
@@ -103,26 +103,26 @@ def fold_constant(statement):
 """
 True if `val` is a constant literal.
 """
-def is_constant_val(val):
+def _is_constant_val(val):
     return val[0] == '#'
 
 """
-True if `val` is a variable. Always true if `is_constant_val` is false.
+True if `val` is a variable. Always true if `_is_constant_val` is false.
 """
-def is_var(val):
+def _is_var(val):
     return val[0] != '#'
 
 """
 True if statement is a copy operation, ie. statement["op"] == "MOV.
 """
-def is_copy(statement):
+def _is_copy(statement):
     return statement["op"] == "MOV"
 
 
-def propagate_constant(code, worklist, statement):
+def _propagate_constant(code, worklist, statement):
     val = statement["src1"]
     var = statement["dest"]
-    remove_statement(code, statement)
+    _remove_statement(code, statement)
     for block in code["blocks"]:
         for statement in block["code"]:
             for field in statement:
@@ -135,7 +135,7 @@ def propagate_constant(code, worklist, statement):
 Modifies `code` in place to delete statement. Can throw KeyError if code passed
 is not well formed.
 """
-def remove_statement(code, statement):
+def _remove_statement(code, statement):
     for block in code["blocks"]:
         for i, s in enumerate(block["code"]):
             if s == statement:
@@ -160,7 +160,7 @@ for each variable:
                 }]
     }
 """
-def get_variables(code):
+def _get_variables(code):
     variables = defaultdict(dict)
     for block in code["blocks"]:
         for idx, statement in enumerate(block["code"]):
@@ -170,7 +170,7 @@ def get_variables(code):
                     "statement": idx
                 }
             for var in [statement[x] for x in statement
-                        if x.startswith("src") and is_var(statement[x])]:
+                        if x.startswith("src") and _is_var(statement[x])]:
                 if "uses" not in variables[var]:
                     variables[var]["uses"] = []
                 variables[var]["uses"].append({
@@ -190,7 +190,7 @@ Transforms `code` in place, eliminating statements defining variables
 that are never used.
 """
 def dead_code_elimination(code):
-    variables = get_variables(code)
+    variables = _get_variables(code)
     worklist = variables.keys()
     while len(worklist):
         v = worklist.pop(0)
@@ -203,15 +203,15 @@ def dead_code_elimination(code):
             if code["blocks"][b]["code"][s]["op"] in NO_SIDE_EFFECTS:
                 for var in [code["blocks"][b]["code"][s][x] for x in
                             code["blocks"][b]["code"][s] if x.startswith("src")]:
-                    if is_var(var) and var not in worklist:
+                    if _is_var(var) and var not in worklist:
                         worklist.append(var)
                 code["blocks"][b]["code"][s]["delete"] = True
-    delete_marked_statements(code)
+    _delete_marked_statements(code)
 
 """
 Iterates over all blocks and deletes any statements marked for deletion.
 """
-def delete_marked_statements(code):
+def _delete_marked_statements(code):
     for block in code["blocks"]:
         for idx, statement in enumerate(block["code"]):
             if "delete" in statement:
