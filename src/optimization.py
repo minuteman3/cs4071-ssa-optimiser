@@ -93,6 +93,9 @@ def get_variables(code):
                 if "uses" not in variables[var]:
                     variables[var]["uses"] = []
                     variables[var]["uses"].append({"block":block["name"], "statement":idx})
+    for v in variables:
+        if "uses" not in variables[v]:
+            variables[v]["uses"] = []
 
     return variables
 
@@ -108,12 +111,12 @@ def dead_code_elimination(code):
                 if block["name"] == variables[v]["def_site"]["block"]:
                     b = idx
                     break
-            if code["blocks"][b][s]["op"] in NO_SIDE_EFFECTS:
-                for var in [statement[x] for x in code["blocks"][b][s] if x.startswith("src")]:
-                    if var not in worklist:
+            if code["blocks"][b]["code"][s]["op"] in NO_SIDE_EFFECTS:
+                for var in [code["blocks"][b]["code"][s][x] for x in
+                            code["blocks"][b]["code"][s] if x.startswith("src")]:
+                    if is_var(var) and var not in worklist:
                         worklist.append(var)
-                print "Deleting {}".format(json.dumps(code["blocks"][b][s], indent=4))
-                del code["blocks"][b][s]
+                del code["blocks"][b]["code"][s]
 
 
 def main():
