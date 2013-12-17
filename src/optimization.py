@@ -31,12 +31,13 @@ def constant_propagation(code):
 
 
 def is_constant_phi(statement):
-    operands =  statement["operands"]
+    operands = [statement[x] for x in statement if x.startswith("src")]
     return is_constant_val(operands[0]) and all(op == operands[0] for op in operands)
 
 def convert_phi_to_copy(statement):
-    val = statement["operands"][0]
-    del statement["operands"]
+    val = statement["src1"]
+    for src in [x for x in statement if x.startswith("src")]:
+        del statement[src]
     statement["op"] = "MOV"
     statement["src1"] = val
 
@@ -65,11 +66,7 @@ def propagate_constant(code, worklist, statement):
     for block in code["blocks"]:
         for statement in block["code"]:
             for field in statement:
-                if isinstance(statement[field], list):
-                    statement[field] = [val if x == var else x for x in statement[field]]
-                    if statement not in worklist:
-                        worklist.append(statement)
-                elif statement[field] == var:
+                if statement[field] == var:
                     statement[field] = val
                     if statement not in worklist:
                         worklist.append(statement)
@@ -116,10 +113,10 @@ def main():
         toSSA(code)
         b, s, v = build_datastructures(code)
         #print json.dumps(s, indent=4)
-        print json.dumps(v, indent=4)
+        #print json.dumps(v, indent=4)
         constant_propagation(code)
         #print json.dumps(b, indent=4)
-        #print json.dumps(code, indent=4)
+        print json.dumps(code, indent=4)
 
 
 
