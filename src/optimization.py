@@ -21,9 +21,8 @@ def constant_propagation(code):
             worklist.append(statement)
     while len(worklist):
         s = worklist.pop(0)
-        if s["op"] == "phi":
-            if is_constant_phi(s):
-                convert_phi_to_copy(s)
+        if is_constant_phi(s):
+            convert_phi_to_copy(s)
         if s["op"] in FOLDABLE_OPS:
             if is_constant_val(s["src1"]) and is_constant_val(s["src2"]):
                 fold_constant(s)
@@ -31,9 +30,14 @@ def constant_propagation(code):
             propagate_constant(code, worklist, s)
 
 
+"""
+Returns true if a statement is a Phi function and all operands of the phi
+function are the same constant value.
+"""
 def is_constant_phi(statement):
     operands = [statement[x] for x in statement if x.startswith("src")]
-    return is_constant_val(operands[0]) and all(op == operands[0] for op in operands)
+    return (statement["op"] == "phi" and
+            all(op == operands[0] for op in operands))
 
 def convert_phi_to_copy(statement):
     val = statement["src1"]
