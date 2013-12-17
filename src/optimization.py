@@ -88,10 +88,14 @@ def get_variables(code):
                     "block": block["name"],
                     "statement": idx
                 }
-                variables[statement["dest"]]["uses"] = []
             for var in [statement[x] for x in statement
                         if x.startswith("src") and is_var(statement[x])]:
+                if "uses" not in variables[var]:
+                    variables[var]["uses"] = []
                 variables[var]["uses"].append({"block":block["name"], "statement":idx})
+    for v in variables:
+        if "uses" not in variables[v]:
+            variables[v]["uses"] = []
 
     return variables
 
