@@ -22,6 +22,38 @@ def fixConstants(code, graph, blocks):
 
                             fixed += 1
 """
+Converts to CSSA, using  Method I from book, so generates a lot of unnecessary copy statements.
+Should switch to Method III at some point.
+"""
+def toCSSA(code, graph, blocks):
+    fixConstants(code, graph, blocks)
+
+    copies = 0
+
+    for b in code["blocks"]:
+        for op in b["code"]:
+            if op["op"] == "phi":
+                for part in op:
+                    if part.startswith("src"):
+                        pass
+                        index = int(part[3:]) - 1
+                        blocks[graph.pred(b["name"]).keys()[index]]["code"].append({"op": "MOV", "dest": "CSSACopy" + str(copies), "src": op[part]})
+                        op[part] = "CSSACopy" + str(copies)
+                        copies += 1
+
+                    elif part == "dest":
+                        index = 0
+                        for o in b["code"]:
+                            if o["op"] != "phi":
+                                break
+                            index += 1
+
+                        b["code"].insert(index, {"op" : "MOV", "dest": op["dest"], "src": "CSSACopy" + str(copies)})
+                        op["dest"] = "CSSACopy" + str(copies)
+                        copies += 1
+
+
+"""
 Turns SSA code into normal code.
 Not yet fully functioning.
 """
@@ -40,8 +72,7 @@ def fromSSA(code):
 
     graph.set_root(code['blocks'][0]['name']) # is it ok to just use the first block as root?
 
-    fixConstants(code, graph, blocks)
-
+    toCSSA(code, graph, blocks)
 
 def main():
     code = json.loads(open('tssa.json').read())
