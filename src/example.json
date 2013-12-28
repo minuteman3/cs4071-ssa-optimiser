@@ -67,7 +67,8 @@
                     "src1": "R2"
                 },
                 {
-                    "op": "return"
+                    "op": "return",
+                    "src1": "R0"
                 }
             ],
             "next_block": []

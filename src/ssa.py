@@ -145,6 +145,7 @@ def toSSA(code):
 
     insertPhis(code, graph, blocks)
     renameVars(code, graph, blocks, graph.root, set(), {}, {})
+    return graph
 
 def main():
     code = json.loads(open('example.json').read())
