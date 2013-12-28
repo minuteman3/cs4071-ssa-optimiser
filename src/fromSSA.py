@@ -54,6 +54,77 @@ def toCSSA(code, graph, blocks):
 
 
 """
+Takes a list of sets of objects,  with objects in the same set taken to be equivalent.
+Flattens this list to a dict mapping each object to another, with equivalent objects 
+all mapping to the same object.
+"""
+def flattenEquivs(equivs):
+   
+    changed = True 
+
+    while(changed):
+        changed = False
+        for i in range(len(equivs)):
+            for v in equivs[i]:
+                for j in range(len(equivs)):
+                    if i != j and v in equivs[j]:
+                        for x in equivs[j]:
+                            equivs[i].add(x)
+                        del equivs[j]
+                        changed = True
+                        break
+                if(changed):
+                    break
+            if(changed):
+                break
+
+    mappings = {}
+
+    for s in equivs:
+        d = s.pop()
+        s.add(d)
+        for v in s:
+           mappings[v] = d
+
+    return mappings
+
+"""
+Coalesces phi-functions according to sreedhars method.
+Does not deal with live range interference, this must be 
+dealt with before calling this function.
+"""
+def coalescePhis(code):
+    equivs = []
+
+    for b in code["blocks"]:
+        for op in b["code"]:
+            if op["op"] == "phi":
+                opequivs = set()
+                for part in op:
+                    if part != "op":
+                        opequivs.add(op[part])
+                equivs.append(opequivs)
+
+
+    mappings = flattenEquivs(equivs)
+
+
+    for b in code["blocks"]:
+        toremove = []
+        
+        for i in range(len(b["code"])):
+            if b["code"][i]["op"] == "phi":
+                toremove.append(i)
+                continue
+            for part in b["code"][i]:
+                if (part == "dest" or part.startswith("src")) and b["code"][i][part] in mappings:
+                    b["code"][i][part] = mappings[b["code"][i][part]]
+        
+        for i in toremove:
+            del b["code"][i]
+
+
+"""
 Turns SSA code into normal code.
 Not yet fully functioning.
 """
@@ -74,10 +145,14 @@ def fromSSA(code):
 
     toCSSA(code, graph, blocks)
 
+    coalescePhis(code)
+
 def main():
     code = json.loads(open('tssa.json').read())
     fromSSA(code)
     print json.dumps(code, indent=4)
+
+    print flattenEquivs([set(["a", "b", "c"]), set(["b", "d"]), set(["d", "e", "f"]), set(["f", "r"]), set(["x", "y"])])
 
 
 if __name__ == "__main__":
