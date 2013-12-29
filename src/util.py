@@ -1,5 +1,14 @@
+from graphs import Graph
 from collections import defaultdict
 
+
+def build_graph(code):
+    graph = Graph()
+    blocks = [b["name"] for b in code["blocks"]]
+    edges = [(b["name"], e) for b in code["blocks"] for e in b["next_block"]]
+    graph.add_nodes(*blocks)
+    graph.add_edges(*edges)
+    return graph
 
 """
 Builds a list of all variables in `code` containing the following information
