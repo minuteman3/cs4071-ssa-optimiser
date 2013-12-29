@@ -195,6 +195,27 @@ class Graph(dict):
                     break
         return list(candidates)
 
+    def control_dependence_graph(self):
+        graph = copy.deepcopy(self)
+        graph.add_nodes(u"start")
+        if self.root is None:
+            g_starts = self.find_root_candidates()
+            edges = [(u"start", g) for g in g_starts]
+        else:
+            edges = [(u"start", self.root)]
+        graph.add_edges(*edges)
+        reverse_graph = graph.reverse()
+        rg_starts =  reverse_graph.find_root_candidates()
+        edges = [(g, u"start") for g in rg_starts]
+        reverse_graph.add_edges(*edges)
+        cdg = Graph()
+        rdf = reverse_graph.dominance_frontiers()
+        cdg.add_nodes(*graph.nodeset())
+        for node in rdf:
+            edges = [(e, node) for e in rdf[node]]
+            cdg.add_edges(*edges)
+        return cdg
+
     def check_root(self):
         if self.root is None:
             candidates = self.find_root_candidates()
@@ -202,6 +223,17 @@ class Graph(dict):
                 self.set_root(candidates[0])
             else:
                 raise GraphException("Requires a root node to be set and no suitable candidate could be inferred")
+
+    def has_path(self, node1, node2):
+        if node1 not in self or node2 not in self:
+            raise GraphException("One or more nodes in call to has_path does not exist in graph.")
+        if node2 in self[node1]:
+            return True
+        else:
+            for next_node in self[node1]:
+                if self.has_path(next_node, node2):
+                    return True
+        return False
 
 
 
