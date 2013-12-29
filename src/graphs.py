@@ -77,8 +77,7 @@ class Graph(dict):
     Throws GraphException if no root node has been set.
     """
     def dominators(self):
-        if self.root is None:
-            raise GraphException("Requires a root node to be set")
+        self.check_root()
         dominators = {}
         temp = None
 
@@ -141,8 +140,7 @@ class Graph(dict):
     Throws GraphException if no root node has been set.
     """
     def dominator_tree(self):
-        if self.root is None:
-            raise GraphException("Requires a root node to be set")
+        self.check_root()
         dominator_tree = Graph()
         dominator_tree.add_nodes(*self.keys())
         for node1 in self:
@@ -187,6 +185,24 @@ class Graph(dict):
             else:
                 reverse.set_root(reverse_root)
         return reverse
+
+    def find_root_candidates(self):
+        candidates = self.nodeset()
+        for candidate in candidates:
+            for node in self.nodeset() - candidate:
+                if candidate in self[node]:
+                    candidates = candidates - candidate
+                    break
+        return list(candidates)
+
+    def check_root(self):
+        if self.root is None:
+            candidates = self.find_root_candidates()
+            if len(candidates) == 1:
+                self.set_root(candidates[0])
+            else:
+                raise GraphException("Requires a root node to be set and no suitable candidate could be inferred")
+
 
 
 """
