@@ -7,7 +7,6 @@ from util import (remove_statement,
                   is_constant_phi)
 
 FOLDABLE_OPS = ["MUL", "SUB", "RSB", "ADD"]
-NO_SIDE_EFFECTS = ["MOV", "ADD", "SUB", "RSB", "MUL"]
 
 
 
