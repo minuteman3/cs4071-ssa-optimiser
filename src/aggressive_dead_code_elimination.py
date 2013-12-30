@@ -6,20 +6,20 @@ from constant_propagation import constant_propagation
 from util import (build_graph, get_statements, get_variables, defines_variable,
                  is_conditional_branch, remove_marked_statements, is_var, get_blocks)
 
-LIVE_OPS = ["STR", "BX", "BL", "SWI", "return"]
+LIVE_OPS = ["STR", "BX", "BL", "SWI", "return", "CMP"]
 
 def aggressive_dead_code_elimination(code):
-    graph = build_graph(code)
-    cdg = graph.control_dependence_graph()
-    mark_all(code)
-    unmark_live(code, cdg)
-    remove_unreachable_blocks(code, graph)
-    remove_marked_statements(code)
-    mark_all(code)
-    unmark_live(code, cdg)
-    remove_marked_statements(code)
-    remove_dead_blocks(code)
-    remove_dead_variables(code)
+    code2 = None
+    while code2 != code:
+        code2 = copy.deepcopy(code)
+        graph = build_graph(code)
+        cdg = graph.control_dependence_graph()
+        mark_all(code)
+        unmark_live(code, cdg)
+        remove_unreachable_blocks(code, graph)
+        remove_marked_statements(code)
+        remove_dead_variables(code)
+        remove_dead_blocks(code)
 
 def mark_all(code):
     for block in code["blocks"]:
@@ -30,7 +30,7 @@ def unmark_live(code, cdg):
     live_statements = []
     statements = get_statements(code)
     for statement in statements:
-        if statement["statement"]["op"] in LIVE_OPS:
+        if statement["statement"]["op"] in LIVE_OPS or statement["statement"]["op"].endswith("S"):
             del statement["statement"]["delete"]
             live_statements.append(statement)
     worklist = [ls["statement"][x] for ls in live_statements for x in ls["statement"] if x.startswith("src") and is_var(ls["statement"][x])]
@@ -43,14 +43,18 @@ def unmark_live(code, cdg):
                 del s["delete"]
                 worklist.extend(statement_vars)
                 live_statements.append(statement)
-    for block in code["blocks"]:
+    worklist = [block for block in code["blocks"]]
+    blocks = get_blocks(code)
+    while len(worklist):
+        block = worklist.pop()
         if len(block["next_block"]) > 1:
             nb = 0
             for statement in block["code"]:
                 if is_conditional_branch(statement) and "delete" in statement:
                     next_block = block["next_block"][nb]
+                    worklist.append(code["blocks"][blocks[next_block]])
                     for ls in live_statements:
-                        if cdg.has_path(next_block, ls["block"]) and "delete" in statement:
+                        if ls["block"] in cdg[next_block] and "delete" in statement:
                             del statement["delete"]
                     nb += 1
 
@@ -72,9 +76,7 @@ def remove_dead_blocks(code):
     graph = build_graph(code)
     rg = graph.reverse()
     blocks = get_blocks(code)
-    worklist = []
-    for block in code["blocks"]:
-        worklist.append(block)
+    worklist = [block for block in code["blocks"]]
     while len(worklist):
         block = worklist.pop()
         if len(block["code"]) == 0:
@@ -109,8 +111,6 @@ def main():
     with open('example.json') as input_code:
         code = json.loads(input_code.read())
         cfg = toSSA(code)
-        aggressive_dead_code_elimination(code)
-        constant_propagation(code)
         aggressive_dead_code_elimination(code)
         print json.dumps(code, indent=4)
 
