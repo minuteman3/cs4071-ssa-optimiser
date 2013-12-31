@@ -60,6 +60,16 @@ def remove_statement(code, statement):
             if s == statement:
                 del block["code"][i]
                 return
+				
+"""
+Modifies `code` in place to delete statement. Can throw KeyError if code passed
+is not well formed.
+"""
+def remove_block(code, block):
+    for i, b in enumerate(code["blocks"]):
+        if b == block:
+            del code[i]
+            return
 
 """
 Iterates over all blocks and deletes any statements marked for deletion.
