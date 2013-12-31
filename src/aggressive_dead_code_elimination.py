@@ -107,19 +107,15 @@ def unmark_live_conditional_branches(code, live_statements, cdg):
     while len(worklist):
         block = worklist.pop()
         if len(block["next_block"]) > 1:
-            nb = 0
+            next_block_index = 0
             for statement in block["code"]:
                 if is_conditional_branch(statement) and "delete" in statement:
-                    next_block = block["next_block"][nb]
+                    next_block = block["next_block"][next_block_index]
                     worklist.append(code["blocks"][blocks[next_block]])
                     for ls in live_statements:
-                        if cdg.has_path(next_block, ls["block"]) != ls["block"] in cdg[next_block]:
-                            print "{} | {}".format(next_block, ls["block"])
-                            print json.dumps(cdg, indent=4)
-                            print live_statements
                         if ls["block"] in cdg[next_block] and "delete" in statement:
                             del statement["delete"]
-                    nb += 1
+                    next_block_index += 1
 
 """
 Deletes all blocks that cannot be reached from the START block.
@@ -143,19 +139,19 @@ Deletes all blocks that contain no statements.
 """
 def remove_dead_blocks(code):
     graph = build_graph(code)
-    rg = graph.reverse()
+    r_graph = graph.reverse()
     blocks = get_blocks(code)
     worklist = [block for block in code["blocks"]]
     while len(worklist):
         block = worklist.pop()
         if len(block["code"]) == 0:
             block["delete"] = True
-            for b in rg[block["name"]]:
-                pb = code["blocks"][blocks[b]]
-                worklist.append(pb)
-                for idx,nb in enumerate(pb["next_block"]):
-                    if nb == block["name"]:
-                        pb["next_block"][idx] = block["next_block"][0]
+            for b in r_graph[block["name"]]:
+                previous_block = code["blocks"][blocks[b]]
+                worklist.append(previous_block)
+                for idx,next_block in enumerate(previous_block["next_block"]):
+                    if next_block == block["name"]:
+                        previous_block["next_block"][idx] = block["next_block"][0]
     i = 0
     while i < len(code["blocks"]):
         if "delete" in code["blocks"][i]:
