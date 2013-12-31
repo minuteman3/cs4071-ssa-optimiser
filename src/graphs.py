@@ -212,7 +212,7 @@ class Graph(dict):
             edges = [(u"start", self.root)]
         graph.add_edges(*edges)
         reverse_graph = graph.reverse()
-        rg_starts =  reverse_graph.find_root_candidates()
+        rg_starts = reverse_graph.find_root_candidates()
         edges = [(g, u"start") for g in rg_starts]
         reverse_graph.add_edges(*edges)
         cdg = Graph()
