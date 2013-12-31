@@ -48,8 +48,9 @@ Updates a statement in place, converting a phi function into a copy operation.
 Corrupts code unless `is_constant_phi(statement)` is true.
 """
 def _convert_phi_to_copy(statement):
-    val = statement["src1"]
-    for src in [x for x in statement if x.startswith("src")]:
+    srcs = [x for x in statement if x.startswith("src")]
+    val = statement[srcs[0]]
+    for src in srcs:
         del statement[src]
     statement["op"] = "MOV"
     statement["src1"] = val
