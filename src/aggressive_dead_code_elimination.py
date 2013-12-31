@@ -1,10 +1,16 @@
+import copy
 import json
 from ssa import toSSA
 from graphs import Graph
-import copy
-from constant_propagation import constant_propagation
-from util import (build_graph, get_statements, get_variables, defines_variable,
-                 is_conditional_branch, remove_marked_statements, is_var, get_blocks)
+from util import (build_graph,
+                  get_statements,
+                  get_variables,
+                  defines_variable,
+                  is_conditional_branch,
+                  remove_marked_statements,
+                  is_var,
+                  get_blocks,
+                 )
 
 LIVE_OPS = ["STR", "BX", "BL", "SWI", "return", "CMP"]
 
