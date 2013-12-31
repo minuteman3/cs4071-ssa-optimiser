@@ -25,7 +25,7 @@ def conditional_propagation(code):
 	for block in code["blocks"]:
 		if block["name"] == "b1":
 			worklist.append(block)
-		block["evidence"] = False
+		block["delete"] = True
 	
 	variables = get_variables(code)
 	#for v in variables:
@@ -34,14 +34,15 @@ def conditional_propagation(code):
 		
 	while len(worklist):
 		b = worklist.pop(0)
-		b["evidence"] = True 	
+		b["delete"] = False 	
 		#if len(b["next_block"])
 		#	worklist.append(b["next_block"])
 		#for s in b["code"]:
 	
 	for block in code["blocks"]:
-		if block["evidence"] is False:
+		if block["delete"] is True:
 			remove_block(code,block)
+			#print json.dumps(block, indent=4)
 	
 def main():
     with open('example.json') as input_code:

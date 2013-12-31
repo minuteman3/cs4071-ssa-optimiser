@@ -62,13 +62,13 @@ def remove_statement(code, statement):
                 return
 				
 """
-Modifies `code` in place to delete statement. Can throw KeyError if code passed
+Modifies `code` in place to delete block. Can throw KeyError if code passed
 is not well formed.
 """
 def remove_block(code, block):
     for i, b in enumerate(code["blocks"]):
         if b == block:
-            del code[i]
+            del code["blocks"][i]
             return
 
 """
