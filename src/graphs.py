@@ -50,6 +50,13 @@ class Graph(dict):
                 self.dominator_sets = None
                 self[edge[0]].add(edge[1])
 
+    def remove_edges(self, *edges):
+        for edge in edges:
+            if edge[0] not in self or edge[1] not in self:
+                raise GraphException("Cannot remove edge {} from graph. One or more vertices mentioned does not exist.".format(edge))
+            self.dominator_sets = None
+            self[edge[0]].remove(edge[1])
+
     """
     Convenience method. Returns a Nodeset, a set-like
     object that has had the - operator defined for set difference.
