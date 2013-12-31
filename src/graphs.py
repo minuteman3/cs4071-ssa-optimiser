@@ -234,14 +234,30 @@ class Graph(dict):
     def has_path(self, node1, node2):
         if node1 not in self or node2 not in self:
             raise GraphException("One or more nodes in call to has_path does not exist in graph.")
+        if node1 == node2:
+            return True
         if node2 in self[node1]:
             return True
         else:
             for next_node in self[node1]:
-                if self.has_path(next_node, node2):
+                if self._has_path(next_node, node2, []):
                     return True
         return False
 
+    def _has_path(self, node1, node2, acc):
+        if node1 == node2:
+            return True
+        if node2 in self[node1]:
+            return True
+        else:
+            for next_node in self[node1]:
+                if next_node in acc:
+                    pass
+                else:
+                    acc.append(next_node)
+                    if self._has_path(next_node, node2, acc):
+                        return True
+        return False
 
 
 """
