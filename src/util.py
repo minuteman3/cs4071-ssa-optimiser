@@ -1,7 +1,13 @@
 from graphs import Graph
 from collections import defaultdict
 
+DEFINING_OPS = ["MOV", "ADD", "MUL", "SUB", "RSB", "LDR", "phi"]
 
+UNCONDITIONAL_BRANCHES = ["B", "BX", "BL"]
+
+"""
+Constructs the control flow graph of `code`
+"""
 def build_graph(code):
     graph = Graph()
     blocks = [b["name"] for b in code["blocks"]]
@@ -9,6 +15,41 @@ def build_graph(code):
     graph.add_nodes(*blocks)
     graph.add_edges(*edges)
     return graph
+
+"""
+Builds a list of all statements in `code` containing the following information
+for each statement:
+
+    {
+        "block": Name of block containing statement
+        "statement": Literal copy of statement in question
+    }
+"""
+def get_statements(code):
+    statements = [{"block": b["name"], "statement": s} for b in code["blocks"] for s in b["code"]]
+    return statements
+
+"""
+Returns true if `statement` defines a variable
+"""
+def defines_variable(statement):
+    return statement["op"] in DEFINING_OPS
+
+"""
+Returns true if `statement` is a conditional branch.
+"""
+def is_conditional_branch(statement):
+    return statement["op"].startswith("B") and statement["op"] not in UNCONDITIONAL_BRANCHES
+
+"""
+Returns a dictionary mapping block names to indexes in the "blocks" array of `code`.
+"""
+def get_blocks(code):
+    blocks = {}
+    for idx,block in enumerate(code["blocks"]):
+        blocks[block["name"]] = idx
+    return blocks
+
 
 """
 Builds a list of all variables in `code` containing the following information
@@ -66,9 +107,12 @@ Iterates over all blocks and deletes any statements marked for deletion.
 """
 def remove_marked_statements(code):
     for block in code["blocks"]:
-        for idx, statement in enumerate(block["code"]):
-            if "delete" in statement:
-                del block["code"][idx]
+        i = 0
+        while i < len(block["code"]):
+            if "delete" in block["code"][i]:
+                del block["code"][i]
+            else:
+                i+= 1
 
 """
 True if `val` is a constant literal.
