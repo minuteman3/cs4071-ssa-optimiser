@@ -27,7 +27,7 @@ Aggressively finds and eliminates dead code using the algorithm described in the
         * Status register updates (CMP), operations with the `S` flag.
     3. Unmarks statements defining variables used in live statements.
     4. Unmarks conditional branches that directly control execution of live statements.
-    5. Removes blocks that now cannot be reached from the START node.
+    5. Removes blocks that will not be reachable from the START node after deletion.
     6. Deletes all marked statements.
     7. Removes variables from phi functions whose definitions have been eliminated.
     8. Removes blocks which contain no statements.
