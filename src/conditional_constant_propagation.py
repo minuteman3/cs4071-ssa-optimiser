@@ -16,7 +16,7 @@ from util import (remove_statement,
 				  is_var)
 
 FOLDABLE_OPS = ["MUL", "SUB", "RSB", "ADD"]	
-MEMORY_OPS = ["RSB", "LDR"] 
+MEMORY_OPS = ["LDR"] 
 	
 """
 Driving function for the Conditional Constant Propagation
