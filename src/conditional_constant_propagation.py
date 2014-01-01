@@ -120,55 +120,54 @@ def conditional_propagation(code):
 					else:
 						branch = "eq"
 					remove_statement(code, s["statement"])
+					
 			#Note - these do not take in to account all possible instructions in the arm instruction set
-			#Left hand branch ( first option in next_block) is taken if condition met
 			if branch != "nil":
 				if s["statement"]["op"] == "BEQ":	
 					if branch == "eq":
-						worklist.append(code["blocks"][blocks[b["next_block"][0]]])
-						#del code["blocks"][blocks[b["next_block"][1]]]
-					else:
 						worklist.append(code["blocks"][blocks[b["next_block"][1]]])
-						#del code["blocks"][blocks[b["next_block"][0]]]
+						del b["next_block"][0]
+					else:
+						worklist.append(code["blocks"][blocks[b["next_block"][0]]])
+						del b["next_block"][1]
 				if s["statement"]["op"] == "BNE":
 					if branch != "eq":
-						worklist.append(code["blocks"][blocks[b["next_block"][0]]])
-						#del code["blocks"][blocks[b["next_block"][1]]]
-					else:
 						worklist.append(code["blocks"][blocks[b["next_block"][1]]])
-						#del code["blocks"][blocks[b["next_block"][0]]]
+						del b["next_block"][0]
+					else:
+						worklist.append(code["blocks"][blocks[b["next_block"][0]]])
+						del b["next_block"][1]
 				if s["statement"]["op"] == "BLT":
 					if branch == "lt":
-						worklist.append(code["blocks"][blocks[b["next_block"][0]]])
-						#del code["blocks"][blocks[b["next_block"][1]]]
-					else:
 						worklist.append(code["blocks"][blocks[b["next_block"][1]]])
-						#del code["blocks"][blocks[b["next_block"][0]]]
+						del b["next_block"][0]
+					else:
+						worklist.append(code["blocks"][blocks[b["next_block"][0]]])
+						del b["next_block"][1]
 				if s["statement"]["op"] == "BLE":
 					if branch == "eq" or branch == "lt" :
-						worklist.append(code["blocks"][blocks[b["next_block"][0]]])
-						#del code["blocks"][blocks[b["next_block"][1]]]
-					else:
 						worklist.append(code["blocks"][blocks[b["next_block"][1]]])
-						#del code["blocks"][blocks[b["next_block"][0]]]
+						del b["next_block"][0]
+					else:
+						worklist.append(code["blocks"][blocks[b["next_block"][0]]])
+						del b["next_block"][1]
 				if s["statement"]["op"] == "BGT":
 					if branch == "gt":
-						worklist.append(code["blocks"][blocks[b["next_block"][0]]])
-						#del code["blocks"][blocks[b["next_block"][1]]]
-					else:
 						worklist.append(code["blocks"][blocks[b["next_block"][1]]])
-						#del code["blocks"][blocks[b["next_block"][0]]]
+						del b["next_block"][0]
+					else:
+						worklist.append(code["blocks"][blocks[b["next_block"][0]]])
+						del b["next_block"][1]
 				if s["statement"]["op"] == "BGE":
 					if branch == "eq" or branch == "gt" :
-						worklist.append(code["blocks"][blocks[b["next_block"][0]]])
-						#del code["blocks"][blocks[b["next_block"][1]]]
-					else:
 						worklist.append(code["blocks"][blocks[b["next_block"][1]]])
-						#del code["blocks"][blocks[b["next_block"][0]]]
+						del b["next_block"][0]
+					else:
+						worklist.append(code["blocks"][blocks[b["next_block"][0]]])
+						del b["next_block"][1]
 				remove_statement(code, s["statement"])
-				
-		#print json.dumps(variables, indent=4)		
-
+						
+	# Delete any block that is not executed
 	for block in code["blocks"]:
 		if not block["delete"]:
 			del block["delete"]
