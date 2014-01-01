@@ -1,12 +1,15 @@
 import json
 from ssa import toSSA
+from constant_propagation import constant_propagation
 from util import (remove_statement,
                   is_var,
                   is_copy,
                   is_constant_val,
                   is_constant_phi,
 				  get_variables,
-				  remove_block)
+				  get_blocks,
+				  get_statements)
+
 	
 	
 """
@@ -26,19 +29,23 @@ def conditional_propagation(code):
 		if block["name"] == "b1":
 			worklist.append(block)
 		block["delete"] = True
-	
-	variables = get_variables(code)
-	#for v in variables:
-	#	v["evidence"]=False
 		
+	blocks = get_blocks(code)
+	variables = get_variables(code)
+	statements = get_statements(code)
+	
+	#print json.dumps(statements, indent=4) 
+
+	for v in variables: 
+		variables[v]["evidence"]=False
+	#print json.dumps(variables, indent=4)	
 		
 	while len(worklist):
 		b = worklist.pop(0)
 		del b["delete"]  	
-		#if len(b["next_block"]) == 1: 
-			#print code["blocks"]["name"][b["next_block"][0]]
-			#worklist.append(code["blocks"][b["next_block"]])
-		
+		if len(b["next_block"]) == 1:  
+			worklist.append(code["blocks"][blocks[b["next_block"][0]]])
+				
 		#for s in b["code"]:
 	
 	i = 0
@@ -53,8 +60,10 @@ def main():
     with open('example.json') as input_code:
         code = json.loads(input_code.read())
         cfg = toSSA(code)
-        conditional_propagation(code)
+        constant_propagation(code)
         print json.dumps(code, indent=4)
+        conditional_propagation(code)
+        #print json.dumps(code, indent=4)
 
 
 if __name__ == "__main__":
