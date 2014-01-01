@@ -1,8 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 from __future__ import print_function
 from argparse import ArgumentParser, FileType
-from sys import stderr
+from sys import stderr,stdout
 import json
+import cs4071_ssa_optimiser
 
 
 def main():
@@ -10,12 +11,23 @@ def main():
     parser.add_argument('input',
                         nargs='?',
                         type=FileType('r'),
+                        help="Name of input file",
                         default='-')
+    parser.add_argument('-o', '--output',
+                        type=FileType('w'),
+                        help="Name of output file",
+                        default=None)
+
 
     args = parser.parse_args()
 
     try:
         infile = json.loads(args.input.read())
+        outfile = json.dumps(cs4071_ssa_optimiser.optimise(infile))
+        if args.output is None:
+            args.output = stdout
+        args.output.write(outfile)
+
     except ValueError:
         print("ERROR: Invalid JSON passed as input", file=stderr)
 
