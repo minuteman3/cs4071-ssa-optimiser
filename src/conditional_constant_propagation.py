@@ -37,14 +37,19 @@ def conditional_propagation(code):
 	#print json.dumps(statements, indent=4) 
 
 	for v in variables: 
-		variables[v]["evidence"]=False
-	#print json.dumps(variables, indent=4)	
+		if variables[v].has_key("def_site"):
+			variables[v]["evidence"] = False 
+		else:
+			variables[v]["evidence"] = True
+	print json.dumps(variables, indent=4)	
 		
 	while len(worklist):
 		b = worklist.pop(0)
-		del b["delete"]  	
+		del b["delete"]  
+		
 		if len(b["next_block"]) == 1:  
 			worklist.append(code["blocks"][blocks[b["next_block"][0]]])
+		
 				
 		#for s in b["code"]:
 	
@@ -61,9 +66,9 @@ def main():
         code = json.loads(input_code.read())
         cfg = toSSA(code)
         constant_propagation(code)
-        print json.dumps(code, indent=4)
-        conditional_propagation(code)
         #print json.dumps(code, indent=4)
+        conditional_propagation(code)
+        print json.dumps(code, indent=4)
 
 
 if __name__ == "__main__":
