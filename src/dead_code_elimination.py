@@ -4,6 +4,9 @@ from util import (get_variables,
                   is_var,
                   remove_marked_statements)
 
+NO_SIDE_EFFECTS = ["MOV", "ADD", "SUB", "RSB", "MUL"]
+
+
 """
 Simple (non-aggressive) dead-code elimination using the algorithm from
 the SSA Optimization Algorithms handout.

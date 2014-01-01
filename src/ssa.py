@@ -1,7 +1,6 @@
 import copy
 import json
-
-import graphs
+from util import build_graph
 
 def getName(name, num):
     return name + "-" + str(num)
@@ -128,21 +127,9 @@ Converts code to SSA form.
 Operates in-place
 """
 def toSSA(code):
-    graph = graphs.Graph()
-
-    blocks = {}
-
-    for b in code['blocks']:
-        graph.add_nodes(b['name'])
-        blocks[b['name']] = b
-
-    for b in code['blocks']:
-        for e in b['next_block']:
-            graph.add_edges((b['name'], e))
-
-    graph.set_root(code['blocks'][0]['name']) # is it ok to just use the first block as root?
-
-
+    graph = build_graph(code)
+    graph.set_root(code["blocks"][0]["name"])
+    blocks = {b["name"]: b for b in code["blocks"]}
     insertPhis(code, graph, blocks)
     renameVars(code, graph, blocks, graph.root, set(), {}, {})
     return graph
