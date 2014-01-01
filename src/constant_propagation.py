@@ -4,7 +4,9 @@ from util import (remove_statement,
                   is_var,
                   is_copy,
                   is_constant_val,
-                  is_constant_phi)
+                  is_constant_phi,
+				  _fold_constant,
+				  _do_op)
 
 FOLDABLE_OPS = ["MUL", "SUB", "RSB", "ADD"]
 
@@ -54,28 +56,7 @@ def _convert_phi_to_copy(statement):
     statement["op"] = "MOV"
     statement["src1"] = val
 
-"""
-Performs constant folding in place. For an operation to be successfully folded
-three predicates must be true:
 
-    * All src parameters for the statement must be constant values.
-    * statement["op"] must be in FOLDABLE_OPS
-    * statement["op"] must have a case in `_do_op`
-
-If any of these predicates are false calling _fold_constant(statement) will have
-no effect on `statement`.
-"""
-def _fold_constant(statement):
-    try:
-        val1 = int(statement["src1"][1:])
-        val2 = int(statement["src2"][1:])
-    except ValueError:
-        return
-    const = _do_op(statement["op"], val1, val2)
-    if const is not None:
-        statement["op"] = "MOV"
-        statement["src1"] = "#" + str(const)
-        del statement["src2"]
 
 
 
@@ -92,24 +73,7 @@ def _propagate_constant(code, worklist, statement):
                         worklist.append(statement)
 
 
-"""
-Switch statement used by constant folding optimization, instructing the
-optimizer how to fold an operation correctly.
 
-Parameter `op` should be statement["op"] from the code, and all arguments
-in `vals` should be of type int.
-
-Throws TypeError if all vals are not ints.
-"""
-def _do_op(op, *vals):
-    if not all(isinstance(val, int) for val in vals):
-        raise TypeError
-    return {
-        "MUL": vals[0] * vals[1],
-        "SUB": vals[0] - vals[1],
-        "RSB": vals[1] - vals[0],
-        "ADD": vals[0] + vals[1]
-    }.get(op, None)
 
 
 def main():
