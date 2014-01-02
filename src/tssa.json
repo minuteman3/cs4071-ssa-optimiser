@@ -13,6 +13,9 @@
                     "op": "MOV",
                     "dest": "x1",
                     "src1": "#2"
+                },
+                {
+                    "op": "BLT"
                 }
             ],
             "next_block": [
@@ -38,6 +41,9 @@
                     "op": "MOV",
                     "dest": "z",
                     "src1": "x3"
+                },
+                {
+                    "op": "BGT"
                 }
             ],
             "next_block": [

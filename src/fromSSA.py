@@ -17,7 +17,15 @@ def fixConstants(code, graph, blocks):
                     if part.startswith("src"):
                         if op[part].startswith("#"):
                             index = int(part[3:]) - 1
-                            blocks[graph.pred(b["name"]).keys()[index]]["code"].append({"op": "MOV", "dest": "ConstFix" + str(fixed), "src": op[part]})
+                            insertBlock = blocks[graph.pred(b["name"]).keys()[index]]["code"]
+                            toInsert = {"op": "MOV", "dest": "ConstFix" + str(fixed), "src": op[part]}
+
+                            # Make sure to insert before branch
+                            if len(insertBlock) > 0 and insertBlock[-1]["op"].startswith("B"):
+                                insertBlock.insert(-1, toInsert )
+                            else:
+                                insertBlock.append(toInsert)
+
                             op[part] = "ConstFix" + str(fixed)
 
                             fixed += 1
@@ -37,7 +45,15 @@ def toCSSA(code, graph, blocks):
                     if part.startswith("src"):
                         pass
                         index = int(part[3:]) - 1
-                        blocks[graph.pred(b["name"]).keys()[index]]["code"].append({"op": "MOV", "dest": "CSSACopy" + str(copies), "src": op[part]})
+                        insertBlock = blocks[graph.pred(b["name"]).keys()[index]]["code"]
+                        toInsert = {"op": "MOV", "dest": "CSSACopy" + str(copies), "src": op[part]}
+                        
+                        # Make sure to insert before branch
+                        if len(insertBlock) > 0 and insertBlock[-1]["op"].startswith("B"):
+                            insertBlock.insert(-1, toInsert )
+                        else:
+                            insertBlock.append(toInsert)
+
                         op[part] = "CSSACopy" + str(copies)
                         copies += 1
 
