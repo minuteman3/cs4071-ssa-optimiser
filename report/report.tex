@@ -169,11 +169,11 @@ Similarly, the algorithm assumes that a variable is never assigned to, unless th
 In the algorithm, the set V tracks the ``evidence'' associated with each variable in the program. For any variable v,
 V[v] is true if there is evidence that v will have at least two values at various points in the program, or an unpredictable
 value (e.g. read from a file). V[v] is false otherwise. Also, the set D tracks whether or not basic blocks should be deleted or 
-not. At the start, D[b] is true for all blocks b in the program. If it is found that a block is reachable, then E[b] is set to false.
+not. At the start, D[b] is true for all blocks b in the program. If it is found that a block is reachable, then D[b] is set to false.
 
 The algorithm works by iterating over a worklist of basic blocks. This worklist initially contains only the starting block,
 since this is the only block at this point that we can say for certain will be executed. Blocks are popped off the worklist
-one at a time. Whenever a block with a single successor s is encountered, E[s] is set to false. In the event that there are two
+one at a time. Whenever a block with a single successor s is encountered, D[s] is set to false. In the event that there are two
 successors to a block (called B1 and B2), if both source operands to the conditional jump are found to be constant, then the result 
 of the jump can be evaluated at compile time. Depending on the result, either D[B1] is set to false or D[B2] is set to false.
 
@@ -181,7 +181,35 @@ The algorithm performs all of the steps outlined in the handout iteratively on e
 Once the worklist is empty, the algorithm deletes any basic blocks b where D[b] is still set to true.
 
 \section{Conversion out of SSA}
+In order to convert out of SSA form, we used the algorithm described by Sreedhar et al. examined in class. Specifically, we used 
+the description of the algorithm outlined in the handout of Chapter 5 of ``Optimization in Static Single Assignment Form'' from 
+the Sassa Laboratory in Tokyo Institute of Technology.
 
+In broad terms, this algorithm involves converting the program into CSSA (Conventional SSA) form and then
+coalescing \(\phi\)-functions to take the program out of SSA form altogether.
+
+Conversion into CSSA form is done using the naive translation method outlined in the handout (i.e. Method I on page 56).
+The following is basic pseudocode outlining the overall algorithm used.
+
+\begin{verbatim}
+for each block b in the program
+    for each phi-function p in b
+        for each source s of p
+            Add a copy instruction from s into temporary variable 
+                ts at the end of the predecessor block
+            Replace s in p with ts
+        Replace destination d of p with temporary variable td
+        Insert a copy instruction from td to d immediately after p
+\end{verbatim}
+
+Once this has completed, we can begin coalescing \(\phi\)-functions and ultimately remove them. This is done by first combining
+all \(\phi\)-functions that share one or more variables, either as sources or destination. A simple iterative approach over all 
+\(\phi\)-functions in the program is used to do this combining. Next, assign a single variable name to all variables in each 
+\(\phi\)-function (i.e. one name per \(\phi\)-function). 
+
+Now, we can replace all uses of the variables in the \(\phi\)-functions with their newly assigned names. This is done by iterating
+over the entire program and replacing names where necessary. Finally, the \(\phi\)-functions can be removed. This brings the program
+fully out of SSA form.
 
 \chapter{Implementation}
 
