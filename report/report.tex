@@ -136,10 +136,49 @@ This algorithm performs three distinct transformations on the original SSA progr
 \end{itemize}
 
 \subsection{Aggressive dead code elimination}
-
+This optimisation aggressively finds and eliminates dead code using the algorithm described in the ``SSA Optimization 
+Algorithms'' handout. The algorithm performs the following 9 steps.
+\begin{enumerate}
+\item Marks all statements to be deleted.
+\item Unmarks statements that perform "live operations":
+  \begin{itemize}
+  \item I/O
+  \item Memory writes (STR)
+  \item Branch \& Exchange (BX) and Branch \& Link (BL)
+  \item Software Interrupts (SWI)
+  \item Status register updates (CMP), operations with the `S` flag.
+  \end{itemize}
+\item Unmarks statements defining variables used in live statements.
+\item Unmarks conditional branches that directly control execution of live statements.
+\item Removes blocks that will not be reachable from the START node after deletion.
+\item Deletes all marked statements.
+\item Removes variables from phi functions whose definitions have been eliminated.
+\item Removes blocks which contain no statements.
+\item Iteratively finds a least fixed point at which no further statements are removed.
+\end{enumerate}
+A least fixed point solution is used despite not being mentioned in the description of the algorithm as testing showed
+subsequent attempts calls to the function may eliminate further code. This arises from the three phases of unmarking,
+particularly ``unmark\_live\_variable\_definitions'', interacting with one another and finding new results to be deleted 
+after the removal of certain blocks/edges.
 
 \subsection{Conditional constant propogation}
+Once again, the algorithm used for conditional constant propogation is described in the ``SSA Optimization Algorithms'' handout.
+At the beginning, this algorithm assumes that a basic block cannot be executed until there is evidence that shows it can be.
+Similarly, the algorithm assumes that a variable is never assigned to, unless there is evidence that shows it is.
 
+In the algorithm, the set V tracks the ``evidence'' associated with each variable in the program. For any variable v,
+V[v] is true if there is evidence that v will have at least two values at various points in the program, or an unpredictable
+value (e.g. read from a file). V[v] is false otherwise. Also, the set D tracks whether or not basic blocks should be deleted or 
+not. At the start, D[b] is true for all blocks b in the program. If it is found that a block is reachable, then E[b] is set to false.
+
+The algorithm works by iterating over a worklist of basic blocks. This worklist initially contains only the starting block,
+since this is the only block at this point that we can say for certain will be executed. Blocks are popped off the worklist
+one at a time. Whenever a block with a single successor s is encountered, E[s] is set to false. In the event that there are two
+successors to a block (called B1 and B2), if both source operands to the conditional jump are found to be constant, then the result 
+of the jump can be evaluated at compile time. Depending on the result, either D[B1] is set to false or D[B2] is set to false.
+
+The algorithm performs all of the steps outlined in the handout iteratively on each statement of each basic block on the worklist.
+Once the worklist is empty, the algorithm deletes any basic blocks b where D[b] is still set to true.
 
 \section{Conversion out of SSA}
 
