@@ -4,6 +4,7 @@ bin/cs4071-ssa-optimiser
 cs4071_ssa_optimiser/__init__.py
 cs4071_ssa_optimiser/constant_propagation.py
 cs4071_ssa_optimiser/dead_code_elimination.py
+cs4071_ssa_optimiser/fromSSA.py
 cs4071_ssa_optimiser/graphs.py
 cs4071_ssa_optimiser/ordered_set.py
 cs4071_ssa_optimiser/ssa.py
