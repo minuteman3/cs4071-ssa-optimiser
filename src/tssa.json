@@ -1,0 +1,77 @@
+{
+    "_comment": "This is an example to demonstrate turning TSSA into CSSA",
+    "blocks": [
+        {
+            "name": "L1",
+            "code": [
+                {
+                    "op": "MOV",
+                    "dest": "x2",
+                    "src1": "#2"
+                },
+                {
+                    "op": "MOV",
+                    "dest": "x1",
+                    "src1": "#2"
+                },
+                {
+                    "op": "BLT"
+                }
+            ],
+            "next_block": [
+                "L3",
+                "L2"
+            ]
+        },
+        {
+            "name": "L2",
+            "code": [],
+            "next_block": ["L3"]
+        },
+        {
+            "name": "L3",
+            "code": [
+                {
+                    "op": "phi",
+                    "dest": "x3",
+                    "src1": "x1",
+                    "src2": "x2"
+                },
+                {
+                    "op": "MOV",
+                    "dest": "z",
+                    "src1": "x3"
+                },
+                {
+                    "op": "BGT"
+                }
+            ],
+            "next_block": [
+                "L4", 
+                "L5"
+            ]
+        },
+        {
+            "name": "L4",
+            "code": [],
+            "next_block": ["L6"]
+        },
+        {
+            "name": "L5",
+            "code": [],
+            "next_block": ["L6"]
+        },
+        {
+            "name": "L6",
+            "code": [
+                {
+                    "op": "phi",
+                    "dest": "a",
+                    "src1": "#1",
+                    "src2": "#2"
+                }
+            ],
+            "next_block": []
+        }
+    ]
+}
