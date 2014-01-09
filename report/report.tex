@@ -213,9 +213,40 @@ over the entire program and replacing names where necessary. Finally, the \(\phi
 fully out of SSA form.
 
 \chapter{Implementation}
+Everything outlined in the above Design section has been implemented in Python 2.7. A simple modular design was taken for the
+implementation. Each section outlined in the above section is separated into its own Python file. This means that optimisations
+can be added and removed by a user, based upon their own needs and requirements. The following is a list of source files that
+are apart of our application, with a brief description of what they do.
 
+\begin{itemize}
+\item \textbf{graphs.py} - Contains a graph class which is used to represent a Control Flow Graph. This class also contains all relevent
+                  information to the optimisations performed in the other files (for example the dominance tree and dominance
+                  frontiers of each node).
+                  
+\item \textbf{util.py} - Includes simple functions that are common to several optimisations.
+
+\item \textbf{ssa.py} - Contains all the functionality described for converting a program into SSA form. Conversion can be invoked via a
+               top level function \textit{toSSA(code)} which will insert \(\phi\)-functions and rename all variables.
+               
+\item \textbf{dead\_code\_elimination.py} - Responsible for performing the dead-code elimination algorithm outlined in the above section.
+
+\item \textbf{constant\_propogation.py} - Responsible for performing the simple constant propogation algorithm outlined above.
+
+\item \textbf{aggressive\_dead\_code\_elimination.py} - Responsible for performing the aggressive dead code elimination algorithm outlined above.
+
+\item \textbf{conditional\_constant\_propogation.py} - Responsible for performing the conditional constant propogation algorithm outlined above.
+
+\item \textbf{fromSSA.py} - Includes all the functionality outlined for conversion out of SSA form. This conversion can be invoked using the
+                   function \textit{fromSSA(code)}.
+
+\item \textbf{\_\_init\_\_.py} - Contains a single function \textit{optimise(code)} which brings together all of the files described here. This
+                    function will convert the given code into SSA form, perform the 4 optimisations given and finally convert it
+                    back out of SSA form.
+\end{itemize}
 
 \chapter{Conclusion}
-
+In this report, we have examined the design and implementation of an optimiser for ARM7 assembly code. This optimiser is capable of
+converting a given ARM7 program (pre-formatted in the JSON-based IR outlined) into SSA form, performing 4 distinct optimisations on
+this new form and finally converting back out of SSA form into normal form. 
 
 \end{document}          
