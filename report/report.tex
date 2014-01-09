@@ -82,11 +82,12 @@ for each variable x in the program
 Once we have successfully inserted all \(\phi\)-functions, we can begin renaming variables to complete the conversion into
 SSA. 
 
-% TODO: add in description of how renaming works
-
+A top-down, depth-first approach is taken to renaming variables. Starting with the entry block to the graph, variables are renamed as they
+are encountered. The algorithm used renames variables on a block by block basis. It renames all variables in the current block
+and then renames all the relevent sources to \(\phi\)-functions in all successors. Once this is done, the algorithm moves onto
+the next block in the graph, from the current block's list of successors.
 
 \section{Optimisations}
-
 
 \subsection{Dead-code elimination}
 Simple dead-code elimination is achieved using the algorithm examined in class on the ``SSA Optimization Algorithms'' handout.
