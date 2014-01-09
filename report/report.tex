@@ -45,7 +45,7 @@ only, to place context on the program represented. The second is an array of obj
 Each of these basic block objects contain three members. The first is the name of the basic block. The second is an array
 of objects, each representing an instruction contained by the basic block. The third and final member is an array which
 contains the name of all blocks that succeed this one. Each object representing an instruction must contain an ``op'' 
-member. They may also contain members for a destination register and up to two source registers.
+member. They may also contain members for a destination variable and up to two source variables.
 
 \section{Conversion into SSA}
 Before conversion into SSA form can begin, we need to generate certain pieces of information about the program being converted.
@@ -84,8 +84,8 @@ SSA.
 
 A top-down, depth-first approach is taken to renaming variables. Starting with the entry block to the graph, variables are renamed as they
 are encountered. The algorithm used renames variables on a block by block basis. It renames all variables in the current block
-and then renames all the relevent sources to \(\phi\)-functions in all successors. Once this is done, the algorithm moves onto
-the next block in the graph, from the current block's list of successors.
+and then renames all the relevant sources to \(\phi\)-functions in all successors. Once this is done, the algorithm moves onto
+the next block in the graph, taken from the current block's list of successors.
 
 \section{Optimisations}
 
@@ -108,12 +108,12 @@ This algorithm simply removes any assignment statements to variables which are n
 Whenever a statement is removed, the list of uses of any variables used by that statement must be updated. When this is done
 those variables are added back onto the worklist to be checked again. This continues until the worklist is empty.
 
-\subsection{Simple constant propogation}
-The algorithm used for simple constant propogation is also taken from the ``SSA Optimization Algorithms'' handout.
-The algorithm has been modified slightly to include copy propogation and constant folding into the one process.
+\subsection{Simple constant propagation}
+The algorithm used for simple constant propagation is also taken from the ``SSA Optimization Algorithms'' handout.
+The algorithm has been modified slightly to include copy propagation and constant folding into the one process.
 
 \begin{verbatim}
-worklist = all statements in SSA program
+worklist = all statements in the SSA program
 while worklist is not empty
     remove statement s from worklist
     if s is a phi-function with all the same arguments
@@ -129,10 +129,10 @@ while worklist is not empty
 \end{verbatim}
 This algorithm performs three distinct transformations on the original SSA program.
 \begin{itemize}
- \item Eliminates phi functions where all phi-function operands are equal, replacing such functions with a copy operation.
+ \item Eliminates \(\phi\)-functions where all \(\phi\)-function operands are equal, replacing such functions with a copy operation.
  \item Constant folds operations on two constant variables, by performing the specified operation and replacing the statement
         with a copy operation with the result, eg. ``ADD R0, \#1, \#5'' becomes ``MOV R0, \#6''.
- \item Copy propagation taking single argument \(\phi\)-functions or copy assignments of the form x <- \(\phi\)(y) or x <- y, 
+ \item Copy propagation taking single argument \(\phi\)-functions or copy assignments of the form x = \(\phi\)(y) or x = y, 
         deleting them and replacing all uses of `x` by `y`.
 \end{itemize}
 
@@ -153,17 +153,13 @@ Algorithms'' handout. The algorithm performs the following 9 steps.
 \item Unmarks conditional branches that directly control execution of live statements.
 \item Removes blocks that will not be reachable from the START node after deletion.
 \item Deletes all marked statements.
-\item Removes variables from phi functions whose definitions have been eliminated.
+\item Removes variables from  \(\phi\)-functions whose definitions have been eliminated.
 \item Removes blocks which contain no statements.
 \item Iteratively finds a least fixed point at which no further statements are removed.
 \end{enumerate}
-A least fixed point solution is used despite not being mentioned in the description of the algorithm as testing showed
-subsequent attempts calls to the function may eliminate further code. This arises from the three phases of unmarking,
-particularly ``unmark\_live\_variable\_definitions'', interacting with one another and finding new results to be deleted 
-after the removal of certain blocks/edges.
 
-\subsection{Conditional constant propogation}
-Once again, the algorithm used for conditional constant propogation is described in the ``SSA Optimization Algorithms'' handout.
+\subsection{Conditional constant propagation}
+Once again, the algorithm used for conditional constant propagation is described in the ``SSA Optimization Algorithms'' handout.
 At the beginning, this algorithm assumes that a basic block cannot be executed until there is evidence that shows it can be.
 Similarly, the algorithm assumes that a variable is never assigned to, unless there is evidence that shows it is.
 
@@ -171,6 +167,7 @@ In the algorithm, the set V tracks the ``evidence'' associated with each variabl
 V[v] is true if there is evidence that v will have at least two values at various points in the program, or an unpredictable
 value (e.g. read from a file). V[v] is false otherwise. Also, the set D tracks whether or not basic blocks should be deleted or 
 not. At the start, D[b] is true for all blocks b in the program. If it is found that a block is reachable, then D[b] is set to false.
+Whenever a block is found to be reachable, it is added to the worklist.
 
 The algorithm works by iterating over a worklist of basic blocks. This worklist initially contains only the starting block,
 since this is the only block at this point that we can say for certain will be executed. Blocks are popped off the worklist
@@ -214,12 +211,12 @@ fully out of SSA form.
 
 \chapter{Implementation}
 Everything outlined in the above Design section has been implemented in Python 2.7. A simple modular design was taken for the
-implementation. Each section outlined in the above section is separated into its own Python file. This means that optimisations
+implementation. Each activity outlined in the above section is separated into its own Python file. This means that optimisations
 can be added and removed by a user, based upon their own needs and requirements. The following is a list of source files that
 are apart of our application, with a brief description of what they do.
 
 \begin{itemize}
-\item \textbf{graphs.py} - Contains a graph class which is used to represent a Control Flow Graph. This class also contains all relevent
+\item \textbf{graphs.py} - Contains a graph class which is used to represent a Control Flow Graph. This class also contains all relevant
                   information to the optimisations performed in the other files (for example the dominance tree and dominance
                   frontiers of each node).
                   
@@ -230,17 +227,17 @@ are apart of our application, with a brief description of what they do.
                
 \item \textbf{dead\_code\_elimination.py} - Responsible for performing the dead-code elimination algorithm outlined in the above section.
 
-\item \textbf{constant\_propogation.py} - Responsible for performing the simple constant propogation algorithm outlined above.
+\item \textbf{constant\_propagation.py} - Responsible for performing the simple constant propagation algorithm outlined above.
 
 \item \textbf{aggressive\_dead\_code\_elimination.py} - Responsible for performing the aggressive dead code elimination algorithm outlined above.
 
-\item \textbf{conditional\_constant\_propogation.py} - Responsible for performing the conditional constant propogation algorithm outlined above.
+\item \textbf{conditional\_constant\_propagation.py} - Responsible for performing the conditional constant propagation algorithm outlined above.
 
 \item \textbf{fromSSA.py} - Includes all the functionality outlined for conversion out of SSA form. This conversion can be invoked using the
                    function \textit{fromSSA(code)}.
 
 \item \textbf{\_\_init\_\_.py} - Contains a single function \textit{optimise(code)} which brings together all of the files described here. This
-                    function will convert the given code into SSA form, perform the 4 optimisations given and finally convert it
+                    function will convert the given code into SSA form, perform the 4 optimisations described and finally convert it
                     back out of SSA form.
 \end{itemize}
 
