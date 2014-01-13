@@ -50,6 +50,13 @@ class Graph(dict):
                 self.dominator_sets = None
                 self[edge[0]].add(edge[1])
 
+    def remove_edges(self, *edges):
+        for edge in edges:
+            if edge[0] not in self or edge[1] not in self:
+                raise GraphException("Cannot remove edge {} from graph. One or more vertices mentioned does not exist.".format(edge))
+            self.dominator_sets = None
+            self[edge[0]].remove(edge[1])
+
     """
     Convenience method. Returns a Nodeset, a set-like
     object that has had the - operator defined for set difference.
@@ -77,8 +84,7 @@ class Graph(dict):
     Throws GraphException if no root node has been set.
     """
     def dominators(self):
-        if self.root is None:
-            raise GraphException("Requires a root node to be set")
+        self.check_root()
         dominators = {}
         temp = None
 
@@ -141,8 +147,7 @@ class Graph(dict):
     Throws GraphException if no root node has been set.
     """
     def dominator_tree(self):
-        if self.root is None:
-            raise GraphException("Requires a root node to be set")
+        self.check_root()
         dominator_tree = Graph()
         dominator_tree.add_nodes(*self.keys())
         for node1 in self:
@@ -176,17 +181,83 @@ class Graph(dict):
     passed that does not exist within the graph.
     """
     def reverse(self, reverse_root=None):
+        reverse = Graph()
+        reverse.add_nodes(*self.keys())
+        for node1 in self:
+            edges = [(node1, node2) for node2 in self if node1 in self[node2]]
+            reverse.add_edges(*edges)
         if reverse_root is not None:
             if reverse_root not in self:
                 raise GraphException("Node {} does not exist in the reverse graph".format(reverse_root))
             else:
-                reverse = Graph()
-                reverse.add_nodes(*self.keys())
                 reverse.set_root(reverse_root)
-                for node1 in self:
-                    edges = [(node1, node2) for node2 in self if node1 in self[node2]]
-                    reverse.add_edges(*edges)
-                return reverse
+        return reverse
+
+    def find_root_candidates(self):
+        candidates = self.nodeset()
+        for candidate in candidates:
+            for node in self.nodeset() - candidate:
+                if candidate in self[node]:
+                    candidates = candidates - candidate
+                    break
+        return list(candidates)
+
+    def control_dependence_graph(self):
+        graph = copy.deepcopy(self)
+        graph.add_nodes(u"start")
+        if self.root is None:
+            g_starts = self.find_root_candidates()
+            edges = [(u"start", g) for g in g_starts]
+        else:
+            edges = [(u"start", self.root)]
+        graph.add_edges(*edges)
+        reverse_graph = graph.reverse()
+        rg_starts = reverse_graph.find_root_candidates()
+        edges = [(g, u"start") for g in rg_starts]
+        reverse_graph.add_edges(*edges)
+        cdg = Graph()
+        rdf = reverse_graph.dominance_frontiers()
+        cdg.add_nodes(*graph.nodeset())
+        for node in rdf:
+            edges = [(e, node) for e in rdf[node]]
+            cdg.add_edges(*edges)
+        return cdg
+
+    def check_root(self):
+        if self.root is None:
+            candidates = self.find_root_candidates()
+            if len(candidates) == 1:
+                self.set_root(candidates[0])
+            else:
+                raise GraphException("Requires a root node to be set and no suitable candidate could be inferred")
+
+    def has_path(self, node1, node2):
+        if node1 not in self or node2 not in self:
+            raise GraphException("One or more nodes in call to has_path does not exist in graph.")
+        if node1 == node2:
+            return True
+        if node2 in self[node1]:
+            return True
+        else:
+            for next_node in self[node1]:
+                if self._has_path(next_node, node2, []):
+                    return True
+        return False
+
+    def _has_path(self, node1, node2, acc):
+        if node1 == node2:
+            return True
+        if node2 in self[node1]:
+            return True
+        else:
+            for next_node in self[node1]:
+                if next_node in acc:
+                    pass
+                else:
+                    acc.append(next_node)
+                    if self._has_path(next_node, node2, acc):
+                        return True
+        return False
 
 
 """
