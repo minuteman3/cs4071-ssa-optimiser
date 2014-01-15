@@ -47,7 +47,7 @@ def conditional_propagation(code):
 			variables[v]["evidence"] = False 
 		else:
 			variables[v]["evidence"] = True
-	#print json.dumps(variables, indent=4)	
+	
 		
 	while len(worklist):
 		b = worklist.pop(0)
@@ -64,8 +64,10 @@ def conditional_propagation(code):
 			
 				#Any executable statement v := x op y with x and y constant, set v to constant x op y (This feels redundant following constant propagation but is in notes given ).
 				if is_constant_val(s["statement"]["src1"]) and is_constant_val(s["statement"]["src2"]):
-					_fold_constant(s["statement"])
-					_propagate_constant(code, s["statement"], s["statement"]["src1"])
+					print variables[s["statement"]["dest"]]["evidence"]
+                                        variables[s["statement"]["dest"]]["evidence"] = s["statement"]["src1"]
+					#_fold_constant(s["statement"])
+					#_propagate_constant(code, s["statement"], s["statement"]["src1"])
 					
 				#If evidence has been found that at least 1 of the source values will have at least 2 different values, then v is also a true variable. 
 				elif variables[s["statement"]["src1"]]["evidence"] or variables[s["statement"]["src2"]]["evidence"]:
@@ -96,7 +98,16 @@ def conditional_propagation(code):
 						else:
 							evidence = False
 						if is_constant_val(o) and is_executable(code, o) and (not is_executable(code, n) or (o == n and is_constant_val(n)) or not evidence):
-							_propagate_constant(code, s["statement"], o)
+							print "-----------------------------------------"
+							print get_value (variables, s, o);
+							print get_value (variables, s, n);
+							#print variables[s["statement"]["dest"]]["evidence"]
+                                        		#variables[s["statement"]["dest"]]["evidence"] = s["statement"]["src1"]
+							#print variables[s["statement"]["dest"]]["evidence"]
+							#print json.dumps( s["statement"], indent=4)
+							#print "########################################"
+							#print json.dumps( variables[s["statement"]["dest"]], indent=4)
+							#_propagate_constant(code, s["statement"], o)
 							
 			if s["statement"]["op"] == "CMP":
 				# if branch instruction, if either src is a confirmed variable, then both paths may be executed and should be added to the worklist to be marked as such and their statements analysed. 
@@ -119,53 +130,41 @@ def conditional_propagation(code):
 						branch = "lt"
 					else:
 						branch = "eq"
-					remove_statement(code, s["statement"])
+
 					
 			#Note - these do not take in to account all possible instructions in the arm instruction set
 			if branch != "nil":
 				if s["statement"]["op"] == "BEQ":	
 					if branch == "eq":
-						worklist.append(code["blocks"][blocks[b["next_block"][1]]])
-						del b["next_block"][0]
-					else:
 						worklist.append(code["blocks"][blocks[b["next_block"][0]]])
-						del b["next_block"][1]
+					else:
+						worklist.append(code["blocks"][blocks[b["next_block"][1]]])
 				if s["statement"]["op"] == "BNE":
 					if branch != "eq":
-						worklist.append(code["blocks"][blocks[b["next_block"][1]]])
-						del b["next_block"][0]
-					else:
 						worklist.append(code["blocks"][blocks[b["next_block"][0]]])
-						del b["next_block"][1]
+					else:
+						worklist.append(code["blocks"][blocks[b["next_block"][1]]])
 				if s["statement"]["op"] == "BLT":
 					if branch == "lt":
-						worklist.append(code["blocks"][blocks[b["next_block"][1]]])
-						del b["next_block"][0]
-					else:
 						worklist.append(code["blocks"][blocks[b["next_block"][0]]])
-						del b["next_block"][1]
+					else:
+						worklist.append(code["blocks"][blocks[b["next_block"][1]]])
 				if s["statement"]["op"] == "BLE":
 					if branch == "eq" or branch == "lt" :
-						worklist.append(code["blocks"][blocks[b["next_block"][1]]])
-						del b["next_block"][0]
-					else:
 						worklist.append(code["blocks"][blocks[b["next_block"][0]]])
-						del b["next_block"][1]
+					else:
+						worklist.append(code["blocks"][blocks[b["next_block"][1]]])
 				if s["statement"]["op"] == "BGT":
 					if branch == "gt":
-						worklist.append(code["blocks"][blocks[b["next_block"][1]]])
-						del b["next_block"][0]
-					else:
 						worklist.append(code["blocks"][blocks[b["next_block"][0]]])
-						del b["next_block"][1]
+					else:
+						worklist.append(code["blocks"][blocks[b["next_block"][1]]])
 				if s["statement"]["op"] == "BGE":
 					if branch == "eq" or branch == "gt" :
-						worklist.append(code["blocks"][blocks[b["next_block"][1]]])
+						worklist.append(code["blocks"][blocks[b["next_block"][0]]])
 						del b["next_block"][0]
 					else:
-						worklist.append(code["blocks"][blocks[b["next_block"][0]]])
-						del b["next_block"][1]
-				remove_statement(code, s["statement"])
+						worklist.append(code["blocks"][blocks[b["next_block"][1]]])
 						
 	# Delete any block that is not executed
 	for block in code["blocks"]:
@@ -178,6 +177,8 @@ def conditional_propagation(code):
 			del code["blocks"][i]
 		else:
 			i += 1
+
+
 		
 		
 def is_executable (code, var):
@@ -201,6 +202,10 @@ def _propagate_constant(code, statement, const):
                 if statement[field] == var:
                     statement[field] = val
 
+def get_value (variables, s, var):
+	if is_constant_val(var):
+		return var
+	return variables[s["statement"]["dest"]]["evidence"]
 	
 def main():
     with open('example.json') as input_code:
@@ -209,7 +214,7 @@ def main():
         constant_propagation(code)
         #print json.dumps(code, indent=4)
         conditional_propagation(code)
-        print json.dumps(code, indent=4)
+       # print json.dumps(code, indent=4)
 
 
 if __name__ == "__main__":
