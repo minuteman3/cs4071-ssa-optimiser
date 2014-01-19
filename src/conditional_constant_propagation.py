@@ -6,18 +6,18 @@ from util import (remove_statement,
                   is_copy,
                   is_constant_val,
                   is_constant_phi,
-				  get_variables,
-				  get_blocks,
-				  get_statements,
-				  _fold_constant,
-				  _do_op,
-				  get_statements_in_block,
-				  is_constant_val,
-				  is_var)
+		  get_variables,
+		  get_blocks,
+		  get_statements,
+		  _fold_constant,
+		  _do_op,
+		  get_statements_in_block,
+		  is_var)
 
 FOLDABLE_OPS = ["MUL", "SUB", "RSB", "ADD"]	
 MEMORY_OPS = ["BL","LDR"] 
-	
+
+
 """
 Driving function for the Conditional Constant Propagation
  specified in the SSA Optimization Algorithms handout.
@@ -26,6 +26,7 @@ Driving function for the Conditional Constant Propagation
  Then deletes none executed code and transforms constant code in place. 
  
 """
+variables = 0
 
 def conditional_propagation(code):
 	worklist = []
@@ -36,6 +37,7 @@ def conditional_propagation(code):
 		block["delete"] = True
 		
 	blocks = get_blocks(code)
+	global variables 
 	variables = get_variables(code)
 	
 	
@@ -60,15 +62,21 @@ def conditional_propagation(code):
 		statements = get_statements_in_block(b)		
 		branch = "nil"
 		for s in statements:
+			if is_copy (s["statement"]):
+					if variables[s["statement"]["dest"]]["evidence"] == False:
+				 		variables[s["statement"]["dest"]]["evidence"] = s["statement"]["src1"]
+					else:
+						variables[s["statement"]["dest"]]["evidence"] = True
+
 			if s["statement"]["op"] in FOLDABLE_OPS:
 			
 				#Any executable statement v := x op y with x and y constant, set v to constant x op y (This feels redundant following constant propagation but is in notes given ).
 				if is_constant_val(s["statement"]["src1"]) and is_constant_val(s["statement"]["src2"]):
-					print variables[s["statement"]["dest"]]["evidence"]
-                                        variables[s["statement"]["dest"]]["evidence"] = s["statement"]["src1"]
-					#_fold_constant(s["statement"])
-					#_propagate_constant(code, s["statement"], s["statement"]["src1"])
-					
+					if is_constant_val(s["statement"]["src1"]):
+						variables[s["statement"]["dest"]]["evidence"] = s["statement"]["src1"]
+					else:
+						variables[s["statement"]["dest"]]["evidence"] = variables[s["statement"]["src1"]]["evidence"]
+
 				#If evidence has been found that at least 1 of the source values will have at least 2 different values, then v is also a true variable. 
 				elif variables[s["statement"]["src1"]]["evidence"] or variables[s["statement"]["src2"]]["evidence"]:
 					variables[s["statement"]["dest"]]["evidence"] = True
@@ -99,8 +107,8 @@ def conditional_propagation(code):
 							evidence = False
 						if is_constant_val(o) and is_executable(code, o) and (not is_executable(code, n) or (o == n and is_constant_val(n)) or not evidence):
 							print "-----------------------------------------"
-							print get_value (variables, s, o);
-							print get_value (variables, s, n);
+							#print get_value (variables, s, o);
+							#print get_value (variables, s, n);
 							#print variables[s["statement"]["dest"]]["evidence"]
                                         		#variables[s["statement"]["dest"]]["evidence"] = s["statement"]["src1"]
 							#print variables[s["statement"]["dest"]]["evidence"]
@@ -119,11 +127,11 @@ def conditional_propagation(code):
 				
 				#If a branch and both srcs are constant, add appropriate path to work path. 
 				if is_constant_val(s["statement"]["src1"]) and is_constant_val(s["statement"]["src2"]):
-					try:
-						val1 = int(s["statement"]["src1"][1:])
-						val2 = int(s["statement"]["src2"][1:])
-					except ValueError:
-						return
+					print variables[s["statement"]["src1"]]["evidence"]
+					print s["statement"]["src2"]
+					val1 = 1
+					val2 = 0
+
 					if val1 > val2 :
 						branch = "gt"
 					elif val1 < val2 :
@@ -179,6 +187,14 @@ def conditional_propagation(code):
 			i += 1
 
 
+"""
+True if `val` is a constant literal.
+"""
+def is_constant_val(val):
+	if val.startswith('#') or variables[val]["evidence"]:
+		return True
+	else:
+		return False
 		
 		
 def is_executable (code, var):
@@ -211,12 +227,19 @@ def main():
     with open('example.json') as input_code:
         code = json.loads(input_code.read())
         cfg = toSSA(code)
-        constant_propagation(code)
+        #constant_propagation(code)
         #print json.dumps(code, indent=4)
         conditional_propagation(code)
-       # print json.dumps(code, indent=4)
+        #print json.dumps(code, indent=4)
 
+		
+"""
+	for v in variables: 
+		print "#####################"	
+		print json.dumps(v, indent=4) 
+		print json.dumps(variables[v], indent=4) 
 
+"""
 if __name__ == "__main__":
     main()
 
