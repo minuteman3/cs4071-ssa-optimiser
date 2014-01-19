@@ -1,0 +1,249 @@
+\documentclass[a4paper,10pt]{report}
+\usepackage[utf8]{inputenc}
+
+% Title Page
+\title{CS4071 SSA Optimiser}
+\author{
+Miles McGuire\\
+\and
+Tom Mason\\
+\and
+Stephen Rogers\\
+\and
+Lonan Hugh Lardner
+}
+
+
+\begin{document}
+\maketitle
+
+\tableofcontents
+
+\chapter{Introduction}
+The aim of this assignment is to design and implement an optimiser for ARM7 assembly. The problem has been split up
+into three parts, one of which will be described in this report. Specifically, we will examine the conversion of an
+intermediate representation (IR) into SSA (Static Single Assignment) form, various optimisations performed on the IR 
+in SSA form, and conversion back out of this form.
+
+In the Design chapter, we will begin by describing the IR that is passed into our application to be optimised. Then we 
+will examine how conversion into SSA form is achieved. In the following section, we will describe the various 
+optimisations that are performed on the IR in SSA form. Finally, we will look at how conversion out of SSA is completed.
+
+In the Implementation chapter, we will give a brief overview of how the application is implemented, focusing on code 
+structure and any technologies used.
+
+\chapter{Design}
+
+\section{Intermediate Representation}
+The intermediate representation was designed specifically to use JSON for passing between different parts of the overall 
+application. JSON was chosen because of its simplicity and the wide range of libraries available for working with it.
+
+Any program that is being passed into our optimiser is represented by a single object. This object will generally contain
+two members. The first is a comments section, which can be ignored by the optimiser. It exists primarily for human reading 
+only, to place context on the program represented. The second is an array of objects representing the basic blocks.
+
+Each of these basic block objects contain three members. The first is the name of the basic block. The second is an array
+of objects, each representing an instruction contained by the basic block. The third and final member is an array which
+contains the name of all blocks that succeed this one. Each object representing an instruction must contain an ``op'' 
+member. They may also contain members for a destination variable and up to two source variables.
+
+\section{Conversion into SSA}
+Before conversion into SSA form can begin, we need to generate certain pieces of information about the program being converted.
+First, we must generate the Control Flow Graph (CFG) for the program. This is done simply in two steps. We iterate over
+the program, adding each basic block as a node in the graph. Then we iterate over the program again, adding an edge from a node
+x to a node y where y is in the ``next block'' set for node x.
+
+From the CFG we can now calculate the Dominance Frontier (DF) of each of the nodes in the graph (i.e. each basic block).
+The DF of each node is needed to determine where to insert \(\phi\)-functions later in the process. The DF of each node x is 
+the set {w} where x dominates some immediate predecessor of w but does not strictly dominate w. The set of all DFs can be 
+calculated programmatically by iterating over the CFG.
+
+Finally, we calculate the set of ``definition sites'' for each variable in the program. This set, for a variable contains 
+all basic blocks in which there is an assignment to that variable.
+
+Once we have all of this information, we can begin inserting \(\phi\)-functions into the program. This is done using the
+following algorithm.
+
+\begin{verbatim}
+for each variable x in the program
+    worklist = definition sites of x
+
+    while worklist is not empty
+        remove node n from the worklist
+
+        for each node y in DF(n)
+            if x does not have a phi-function in y
+                insert phi-function for x at the top of block y
+
+                if y is not in the definition sites for x
+                    add y to worklist
+\end{verbatim}
+
+Once we have successfully inserted all \(\phi\)-functions, we can begin renaming variables to complete the conversion into
+SSA. 
+
+A top-down, depth-first approach is taken to renaming variables. Starting with the entry block to the graph, variables are renamed as they
+are encountered. The algorithm used renames variables on a block by block basis. It renames all variables in the current block
+and then renames all the relevant sources to \(\phi\)-functions in all successors. Once this is done, the algorithm moves onto
+the next block in the graph, taken from the current block's list of successors.
+
+\section{Optimisations}
+
+\subsection{Dead-code elimination}
+Simple dead-code elimination is achieved using the algorithm examined in class on the ``SSA Optimization Algorithms'' handout.
+
+\begin{verbatim}
+worklist = all variables in the SSA program
+while worklist is not empty
+    remove variable v from worklist
+    if v's list of uses is empty
+        let s be v's statement of definition
+        if s has no side effects (other than assignment to v)
+            delete s from the program
+            for each variable x used by s
+                delete s from the list of uses for x
+                worklist = worklist U {x}
+\end{verbatim}
+This algorithm simply removes any assignment statements to variables which are not used at any other point in the program.
+Whenever a statement is removed, the list of uses of any variables used by that statement must be updated. When this is done
+those variables are added back onto the worklist to be checked again. This continues until the worklist is empty.
+
+\subsection{Simple constant propagation}
+The algorithm used for simple constant propagation is also taken from the ``SSA Optimization Algorithms'' handout.
+The algorithm has been modified slightly to include copy propagation and constant folding into the one process.
+
+\begin{verbatim}
+worklist = all statements in the SSA program
+while worklist is not empty
+    remove statement s from worklist
+    if s is a phi-function with all the same arguments
+        replace s with a copy operation
+    if s is a foldable operation
+        if both source operands are constants
+            fold constant statement s
+    if s is a copy of some constant c to destination v
+        delete s from the program
+        for each statement t that uses v
+            substitute c for v in t
+            worklist = worklist U {t}
+\end{verbatim}
+This algorithm performs three distinct transformations on the original SSA program.
+\begin{itemize}
+ \item Eliminates \(\phi\)-functions where all \(\phi\)-function operands are equal, replacing such functions with a copy operation.
+ \item Constant folds operations on two constant variables, by performing the specified operation and replacing the statement
+        with a copy operation with the result, eg. ``ADD R0, \#1, \#5'' becomes ``MOV R0, \#6''.
+ \item Copy propagation taking single argument \(\phi\)-functions or copy assignments of the form x = \(\phi\)(y) or x = y, 
+        deleting them and replacing all uses of `x` by `y`.
+\end{itemize}
+
+\subsection{Aggressive dead code elimination}
+This optimisation aggressively finds and eliminates dead code using the algorithm described in the ``SSA Optimization 
+Algorithms'' handout. The algorithm performs the following 9 steps.
+\begin{enumerate}
+\item Marks all statements to be deleted.
+\item Unmarks statements that perform "live operations":
+  \begin{itemize}
+  \item I/O
+  \item Memory writes (STR)
+  \item Branch \& Exchange (BX) and Branch \& Link (BL)
+  \item Software Interrupts (SWI)
+  \item Status register updates (CMP), operations with the `S` flag.
+  \end{itemize}
+\item Unmarks statements defining variables used in live statements.
+\item Unmarks conditional branches that directly control execution of live statements.
+\item Removes blocks that will not be reachable from the START node after deletion.
+\item Deletes all marked statements.
+\item Removes variables from  \(\phi\)-functions whose definitions have been eliminated.
+\item Removes blocks which contain no statements.
+\item Iteratively finds a least fixed point at which no further statements are removed.
+\end{enumerate}
+
+\subsection{Conditional constant propagation}
+Once again, the algorithm used for conditional constant propagation is described in the ``SSA Optimization Algorithms'' handout.
+At the beginning, this algorithm assumes that a basic block cannot be executed until there is evidence that shows it can be.
+Similarly, the algorithm assumes that a variable is never assigned to, unless there is evidence that shows it is.
+
+In the algorithm, the set V tracks the ``evidence'' associated with each variable in the program. For any variable v,
+V[v] is true if there is evidence that v will have at least two values at various points in the program, or an unpredictable
+value (e.g. read from a file). V[v] is false otherwise. Also, the set D tracks whether or not basic blocks should be deleted or 
+not. At the start, D[b] is true for all blocks b in the program. If it is found that a block is reachable, then D[b] is set to false.
+Whenever a block is found to be reachable, it is added to the worklist.
+
+The algorithm works by iterating over a worklist of basic blocks. This worklist initially contains only the starting block,
+since this is the only block at this point that we can say for certain will be executed. Blocks are popped off the worklist
+one at a time. Whenever a block with a single successor s is encountered, D[s] is set to false. In the event that there are two
+successors to a block (called B1 and B2), if both source operands to the conditional jump are found to be constant, then the result 
+of the jump can be evaluated at compile time. Depending on the result, either D[B1] is set to false or D[B2] is set to false.
+
+The algorithm performs all of the steps outlined in the handout iteratively on each statement of each basic block on the worklist.
+Once the worklist is empty, the algorithm deletes any basic blocks b where D[b] is still set to true.
+
+\section{Conversion out of SSA}
+In order to convert out of SSA form, we used the algorithm described by Sreedhar et al. examined in class. Specifically, we used 
+the description of the algorithm outlined in the handout of Chapter 5 of ``Optimization in Static Single Assignment Form'' from 
+the Sassa Laboratory in Tokyo Institute of Technology.
+
+In broad terms, this algorithm involves converting the program into CSSA (Conventional SSA) form and then
+coalescing \(\phi\)-functions to take the program out of SSA form altogether.
+
+Conversion into CSSA form is done using the naive translation method outlined in the handout (i.e. Method I on page 56).
+The following is basic pseudocode outlining the overall algorithm used.
+
+\begin{verbatim}
+for each block b in the program
+    for each phi-function p in b
+        for each source s of p
+            Add a copy instruction from s into temporary variable 
+                ts at the end of the predecessor block
+            Replace s in p with ts
+        Replace destination d of p with temporary variable td
+        Insert a copy instruction from td to d immediately after p
+\end{verbatim}
+
+Once this has completed, we can begin coalescing \(\phi\)-functions and ultimately remove them. This is done by first combining
+all \(\phi\)-functions that share one or more variables, either as sources or destination. A simple iterative approach over all 
+\(\phi\)-functions in the program is used to do this combining. Next, assign a single variable name to all variables in each 
+\(\phi\)-function (i.e. one name per \(\phi\)-function). 
+
+Now, we can replace all uses of the variables in the \(\phi\)-functions with their newly assigned names. This is done by iterating
+over the entire program and replacing names where necessary. Finally, the \(\phi\)-functions can be removed. This brings the program
+fully out of SSA form.
+
+\chapter{Implementation}
+Everything outlined in the above Design section has been implemented in Python 2.7. A simple modular design was taken for the
+implementation. Each activity outlined in the above section is separated into its own Python file. This means that optimisations
+can be added and removed by a user, based upon their own needs and requirements. The following is a list of source files that
+are apart of our application, with a brief description of what they do.
+
+\begin{itemize}
+\item \textbf{graphs.py} - Contains a graph class which is used to represent a Control Flow Graph. This class also contains all relevant
+                  information to the optimisations performed in the other files (for example the dominance tree and dominance
+                  frontiers of each node).
+                  
+\item \textbf{util.py} - Includes simple functions that are common to several optimisations.
+
+\item \textbf{ssa.py} - Contains all the functionality described for converting a program into SSA form. Conversion can be invoked via a
+               top level function \textit{toSSA(code)} which will insert \(\phi\)-functions and rename all variables.
+               
+\item \textbf{dead\_code\_elimination.py} - Responsible for performing the dead-code elimination algorithm outlined in the above section.
+
+\item \textbf{constant\_propagation.py} - Responsible for performing the simple constant propagation algorithm outlined above.
+
+\item \textbf{aggressive\_dead\_code\_elimination.py} - Responsible for performing the aggressive dead code elimination algorithm outlined above.
+
+\item \textbf{conditional\_constant\_propagation.py} - Responsible for performing the conditional constant propagation algorithm outlined above.
+
+\item \textbf{fromSSA.py} - Includes all the functionality outlined for conversion out of SSA form. This conversion can be invoked using the
+                   function \textit{fromSSA(code)}.
+
+\item \textbf{\_\_init\_\_.py} - Contains a single function \textit{optimise(code)} which brings together all of the files described here. This
+                    function will convert the given code into SSA form, perform the 4 optimisations described and finally convert it
+                    back out of SSA form.
+\end{itemize}
+
+\chapter{Conclusion}
+In this report, we have examined the design and implementation of an optimiser for ARM7 assembly code. This optimiser is capable of
+converting a given ARM7 program (pre-formatted in the JSON-based IR outlined) into SSA form, performing 4 distinct optimisations on
+this new form and finally converting back out of SSA form into normal form. 
+
+\end{document}          
