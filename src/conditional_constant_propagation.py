@@ -2,7 +2,6 @@ import json
 from ssa import toSSA
 from constant_propagation import constant_propagation
 from util import (remove_statement,
-                  is_var,
                   is_copy,
                   is_constant_val,
                   is_constant_phi,
@@ -46,12 +45,13 @@ def conditional_propagation(code):
 	for v in variables: 
 		# Variables with no definition must be input to the program  
 		if variables[v].has_key("def_site"):
-			variables[v]["evidence"] = False 
+			variables[v]["evidence"] = "False" 
 		else:
-			variables[v]["evidence"] = True
+			variables[v]["evidence"] = "True"
 	
-		
-	while len(worklist):
+	count = 0
+	while len(worklist) and count < 3:
+		count += 1
 		b = worklist.pop(0)
 		b["delete"] = False
 		
@@ -65,10 +65,10 @@ def conditional_propagation(code):
 		for s in statements:
 			# executable assignment
 			if is_copy (s):
-				if variables[s["dest"]]["evidence"] == False or variables[s["dest"]]["evidence"] == get_value (variables, s["src1"]):
+				if variables[s["dest"]]["evidence"] == "False" or variables[s["dest"]]["evidence"] == get_value (variables, s["src1"]):
 					variables[s["dest"]]["evidence"] = get_value (variables, s["src1"])
 				else:
-					variables[s["dest"]]["evidence"] = True
+					variables[s["dest"]]["evidence"] = "True"
 
 
 			if s["op"] in FOLDABLE_OPS:
@@ -76,17 +76,21 @@ def conditional_propagation(code):
 				if is_constant_val(s["src1"]) and is_constant_val(s["src2"]):
 					val1 = int(get_value(variables,s["src1"])[1:])
 					val2 = int(get_value(variables,s["src2"])[1:])
-					const = _do_op(s["op"], val1, val2)
-					variables[s["dest"]]["evidence"] = "#" + str(const)
-					print variables[s["dest"]]["evidence"]
+					const = "#" + str(_do_op(s["op"], val1, val2))
+					if variables[s["dest"]]["evidence"] == "False" or variables[s["dest"]]["evidence"] == const:
+						variables[s["dest"]]["evidence"] = const
+					else:
+						variables[s["dest"]]["evidence"] = "True"
+
+					#print variables[s["dest"]]["evidence"]
 					
 				#If evidence has been found that at least 1 of the source values will have at least 2 different values, then v is also a true variable. 
 				elif variables[s["src1"]]["evidence"] or variables[s["src2"]]["evidence"]:
-					variables[s["dest"]]["evidence"] = True
+					variables[s["dest"]]["evidence"] = "True"
 			
 			# If value loaded from memory, evidence of true variable
 			if s["op"] in MEMORY_OPS:
-				variables[s["dest"]]["evidence"] = True
+				variables[s["dest"]]["evidence"] = "True"
 				
 			if s["op"] == "phi":
 				operands = [s[x] for x in s if x.startswith("src")]
@@ -94,12 +98,12 @@ def conditional_propagation(code):
 				for o in operands:
 					for n in operands:
 						if o != n and is_constant_val(o) and is_constant_val(n) and is_executable(code, o) and is_executable(code, n):
-							variables[s["dest"]]["evidence"] = True
+							variables[s["dest"]]["evidence"] = "True"
 							
 				# If v assigned from phi op, and at least 1 srcs is a true variable and is executable, v is a true variable
 				for o in operands:
 						if is_var(o) and is_executable(code, o):
-							variables[s["dest"]]["evidence"] = True
+							variables[s["dest"]]["evidence"] = "True"
 				
 				# If v assigned from phi op, and if all srcs that are constant and executable are the same and there are no variables that have seen evidence of use, assign constant value to v. 				
 				for o in operands:
@@ -109,7 +113,11 @@ def conditional_propagation(code):
 						else:
 							evidence = False
 						if is_constant_val(o) and is_executable(code, o) and (not is_executable(code, n) or (o == n and is_constant_val(n)) or not evidence):
-							variables[s["dest"]]["evidence"] = get_value (variables, o)
+
+							if variables[s["dest"]]["evidence"] == "False" or variables[s["dest"]]["evidence"] == get_value (variables, o):
+								variables[s["dest"]]["evidence"] = get_value (variables, o)
+							else:
+								variables[s["dest"]]["evidence"] = "True"
 
 							
 			if s["op"] == "CMP":
@@ -124,12 +132,12 @@ def conditional_propagation(code):
 				if is_constant_val(s["src1"]) and is_constant_val(s["src2"]):
 #print variables[s["src1"]]["evidence"]
 					#print s["src2"]
-					val1 = 1
-					val2 = 0
+					val1 = int(get_value(variables,s["src1"])[1:])
+					val2 = int(get_value(variables,s["src2"])[1:])
 
-					if val1 > val2 :
+					if val1 < val2 :
 						branch = "gt"
-					elif val1 < val2 :
+					elif val1 > val2 :
 						branch = "lt"
 					else:
 						branch = "eq"
@@ -180,16 +188,33 @@ def conditional_propagation(code):
 			del code["blocks"][i]
 		else:
 			i += 1
+			
+	worklist = []
+	for block in code["blocks"]:
+		for statement in block["code"]:
+			worklist.append(statement)
+			
+	while len(worklist):
+		s = worklist.pop(0)
+		if "dest" in s:
+			if variables[s["dest"]]["evidence"].startswith('#'):
+				_propagate_constant(code, s, variables[s["dest"]]["evidence"])
 
 
 """
 True if `val` is a constant literal.
 """
 def is_constant_val(val):
-	if val.startswith('#') or variables[val]["evidence"]:
+	if val.startswith('#') or variables[val]["evidence"].startswith('#'):
 		return True
 	else:
 		return False
+		
+"""
+True if `val` is a variable. Always true if `is_constant_val` is false.
+"""
+def is_var(val):
+    return not is_constant_val(val)		
 		
 		
 def is_executable (code, var):
@@ -212,6 +237,7 @@ def _propagate_constant(code, statement, const):
             for field in statement:
                 if statement[field] == var:
                     statement[field] = val
+					
 
 def get_value (variables, var):
 	if var.startswith('#'):
@@ -228,14 +254,12 @@ def main():
         conditional_propagation(code)
         print json.dumps(code, indent=4)
 
-		
-"""
-	for v in variables: 
-		print "#####################"	
-		print json.dumps(v, indent=4) 
-		print json.dumps(variables[v], indent=4) 
 
-"""
+	#for v in variables: 
+		#print "#####################"	
+		#print json.dumps(v, indent=4) 
+		#print json.dumps(variables[v], indent=4) 
+
 if __name__ == "__main__":
     main()
 
