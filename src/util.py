@@ -30,13 +30,7 @@ def get_statements(code):
     return statements
 	
 """
-Builds a list of all statements in `block` containing the following information
-for each statement:
-
-    {
-        "block": Name of block containing statement
-        "statement": Literal copy of statement in question
-    }
+Builds a list of all statements in `block` 
 """
 def get_statements_in_block(block):
     statements = [s for s in block["code"]]
