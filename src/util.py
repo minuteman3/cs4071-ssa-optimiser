@@ -39,7 +39,7 @@ for each statement:
     }
 """
 def get_statements_in_block(block):
-    statements = [{"block": block["name"], "statement": s} for s in block["code"]]
+    statements = [s for s in block["code"]]
     return statements
 
 """
