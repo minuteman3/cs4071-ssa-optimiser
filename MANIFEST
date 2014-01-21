@@ -2,6 +2,8 @@
 setup.py
 bin/cs4071-ssa-optimiser
 cs4071_ssa_optimiser/__init__.py
+cs4071_ssa_optimiser/aggressive_dead_code_elimination.py
+cs4071_ssa_optimiser/conditional_constant_propagation.py
 cs4071_ssa_optimiser/constant_propagation.py
 cs4071_ssa_optimiser/dead_code_elimination.py
 cs4071_ssa_optimiser/fromSSA.py

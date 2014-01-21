@@ -155,6 +155,8 @@ def remove_dead_blocks(code):
     i = 0
     while i < len(code["blocks"]):
         if "delete" in code["blocks"][i]:
+            if code["blocks"][i]["name"] == code["starting_block"][0]:
+                code["starting_block"][0] = code["blocks"][i]["next_block"][0]
             del code["blocks"][i]
         else:
             i += 1
