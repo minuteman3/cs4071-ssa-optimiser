@@ -15,6 +15,7 @@ from util import (remove_statement,
 
 FOLDABLE_OPS = ["MUL", "SUB", "RSB", "ADD"]	
 MEMORY_OPS = ["BL","LDR"] 
+CONDITIONAL_BRANCH = ["BEQ","BNE","BLT","BLE","BGT","BGE"]
 
 
 """
@@ -183,9 +184,19 @@ def conditional_propagation(code):
 
 						
 		# Delete any block that is not executed
+		# Delete any block that is not executed
+	for block in code["blocks"]:
+		i = 0
+		while i < len(block["next_block"]):
+			if code["blocks"][blocks[block["next_block"][i]]]["delete"]:
+				del block["next_block"][i]
+			else:
+				i += 1
+				
 	for block in code["blocks"]:
 		if not block["delete"]:
 			del block["delete"]
+ 
 			
 	i = 0
 	while i < len(code["blocks"]):
@@ -197,8 +208,6 @@ def conditional_propagation(code):
 	worklistfix = []
 	for block in code["blocks"]:
 		for statement in block["code"]:
-			if statement["block"]:
-				del statement["block"]
 			worklistfix.append(statement)
 			
 	while len(worklistfix):
@@ -206,6 +215,16 @@ def conditional_propagation(code):
 		if "dest" in s:
 			if variables[s["dest"]]["evidence"].startswith('#'):
 				_propagate_constant(code, s, variables[s["dest"]]["evidence"])
+		if s["op"] == "CMP":
+			if is_constant_val(s["src1"], variables) and is_constant_val(s["src2"], variables):
+				print s
+				remove_statement(code, s)
+		#if s["op"] in CONDITIONAL_BRANCH:
+			#for statement in get_block(s, code, blocks):
+				
+		if s["block"]:
+				del s["block"]
+			
 
 def branch(code, blocks, worklist, statement, direction):
 	get_next_block(code, blocks, s, direction)["delete"] = False
