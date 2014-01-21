@@ -219,9 +219,11 @@ def conditional_propagation(code):
 			if is_constant_val(s["src1"], variables) and is_constant_val(s["src2"], variables):
 				print s
 				remove_statement(code, s)
-		#if s["op"] in CONDITIONAL_BRANCH:
-			#for statement in get_block(s, code, blocks):
-				
+		if s["op"] in CONDITIONAL_BRANCH:
+			block = get_block(s, code, blocks)["code"]
+			if not any(statement["op"] == "CMP" for statement in block):
+				remove_statement(code, s)
+			
 		if s["block"]:
 				del s["block"]
 			
