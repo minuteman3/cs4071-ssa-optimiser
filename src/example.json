@@ -1,5 +1,10 @@
 {
     "_comment": "This is the example from class that reduces to return 1. R1 is I, R2 is J, R3 is K",
+	
+	"starting_block": [ 
+		"b1"
+	],
+	
     "blocks": [
         {
             "name": "b1",

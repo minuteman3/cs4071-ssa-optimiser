@@ -30,6 +30,13 @@ def get_statements(code):
     return statements
 
 """
+Builds a list of all statements in `block`
+"""
+def get_statements_in_block(block):
+    statements = [s for s in block["code"]]
+    return statements
+
+"""
 Returns true if `statement` defines a variable
 """
 def defines_variable(statement):
@@ -140,3 +147,45 @@ def is_constant_phi(statement):
     operands = [statement[x] for x in statement if x.startswith("src")]
     return (statement["op"] == "phi" and
             all(op == operands[0] for op in operands))
+
+"""
+Performs constant folding in place. For an operation to be successfully folded
+three predicates must be true:
+
+    * All src parameters for the statement must be constant values.
+    * statement["op"] must be in FOLDABLE_OPS
+    * statement["op"] must have a case in `_do_op`
+
+If any of these predicates are false calling _fold_constant(statement) will have
+no effect on `statement`.
+"""
+def _fold_constant(statement):
+    try:
+        val1 = int(statement["src1"][1:])
+        val2 = int(statement["src2"][1:])
+    except ValueError:
+        return
+    const = _do_op(statement["op"], val1, val2)
+    if const is not None:
+        statement["op"] = "MOV"
+        statement["src1"] = "#" + str(const)
+        del statement["src2"]
+
+"""
+Switch statement used by constant folding optimization, instructing the
+optimizer how to fold an operation correctly.
+
+Parameter `op` should be statement["op"] from the code, and all arguments
+in `vals` should be of type int.
+
+Throws TypeError if all vals are not ints.
+"""
+def _do_op(op, *vals):
+    if not all(isinstance(val, int) for val in vals):
+        raise TypeError
+    return {
+        "MUL": vals[0] * vals[1],
+        "SUB": vals[0] - vals[1],
+        "RSB": vals[1] - vals[0],
+        "ADD": vals[0] + vals[1]
+    }.get(op, None)
