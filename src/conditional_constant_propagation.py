@@ -62,8 +62,10 @@ def conditional_propagation(code):
 				add_block_to_worklist(get_next_block(code, blocks, s, 0), worklist)
 			
 		if "dest" in s:
+			#any overloaded variable cannot chance state
 			if variables[s["dest"]]["evidence"] != "over":
-			
+				#Any executable statement v := x op y with x and y constant and exectuable , set v to constant x op y
+				#Any executable statement v := x op y with x or y is overloaded and exectuable, set v overloaded
 				if is_executable (code, s["src1"], variables):
 					if s["op"] == "MOV":
 						if is_constant_val(s["src1"], variables):
@@ -97,6 +99,9 @@ def conditional_propagation(code):
 								variables [s["dest"]]["evidence"] = "over"
 								update_worklist(code, worklist, s)
 				
+				# If v assigned from phi op, and if all srcs that are constant and executable are the same and there are no variables that have seen evidence of use, assign constant value to v. 
+				# If v assigned from phi op, and at least 2 srcs are different constants and are executable, v is a overloaded
+				# If v assigned from phi op, and at least 1 srcs is overloaded and is executable, v is overloaded
 				if s["op"] == "phi":
 					operands = [s[x] for x in s if x.startswith("src")]		
 					for o in operands:
@@ -111,13 +116,14 @@ def conditional_propagation(code):
 							else:
 								variables [s["dest"]]["evidence"] = "over"
 								update_worklist(code, worklist, s)
-				
+								
+				# If value loaded from memory, evidence of overloading
 				if s["op"] in MEMORY_OPS:
 					variables[s["dest"]]["evidence"] = "over"
 					update_worklist(code, worklist, s)
 					
 		if s["op"] == "CMP":
-				# if branch instruction, if either src is a confirmed variable, then both paths may be executed and should be added to the worklist to be marked as such and their statements analysed. 
+			# if branch instruction, if either src is a overloaded, then both paths may be executed and should be added to the worklist to be marked as such and their statements analysed. 
 			if is_var(s["src1"], variables) or is_var(s["src2"], variables):
 				add_block_to_worklist(get_next_block(code, blocks, s, 0) , worklist)
 				get_next_block(code, blocks, s, 0)["delete"] = False
@@ -126,8 +132,6 @@ def conditional_propagation(code):
 				
 			#If a branch and both srcs are constant, add appropriate path to work path. 
 			else:
-#print variables[s["src1"]]["evidence"]
-				#print s["src2"]
 				val1 = int(get_value(variables,s["src1"])[1:])
 				val2 = int(get_value(variables,s["src2"])[1:])
 				if val1 > val2 :
@@ -137,7 +141,7 @@ def conditional_propagation(code):
 				else:
 					branch = "eq"
 						
-		#Note - these do not take in to account all possible instructions in the arm instruction set
+		#Note - these do not take in to account all possible instructions in the arm instruction set, such as any operation being conditional
 		if branch != "nil":
 			if s["op"] == "BEQ":	
 				if branch == "eq":
@@ -183,10 +187,11 @@ def conditional_propagation(code):
 					add_block_to_worklist(get_next_block(code, blocks, s, 1) , worklist)
 
 						
-		# Delete any block that is not executed
-		# Delete any block that is not executed
+
+	# Delete any block that is not executed
 	for block in code["blocks"]:
 		i = 0
+		#delete references to deleted blocks
 		while i < len(block["next_block"]):
 			if code["blocks"][blocks[block["next_block"][i]]]["delete"]:
 				del block["next_block"][i]
@@ -212,9 +217,12 @@ def conditional_propagation(code):
 			
 	while len(worklistfix):
 		s = worklistfix.pop(0)
+		#propogate constants
 		if "dest" in s:
 			if variables[s["dest"]]["evidence"].startswith('#'):
 				_propagate_constant(code, s, variables[s["dest"]]["evidence"])
+		
+		#remove any branch ops that are constant
 		if s["op"] == "CMP":
 			if is_constant_val(s["src1"], variables) and is_constant_val(s["src2"], variables):
 				print s
@@ -228,9 +236,6 @@ def conditional_propagation(code):
 				del s["block"]
 			
 
-def branch(code, blocks, worklist, statement, direction):
-	get_next_block(code, blocks, s, direction)["delete"] = False
-	add_block_to_worklist(get_next_block(code, blocks, statement, direction) , worklist)
 			
 def get_block(statement, code, blocks):
 	return code["blocks"][blocks[statement["block"]]]

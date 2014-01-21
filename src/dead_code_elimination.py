@@ -6,7 +6,6 @@ from util import (get_variables,
 
 NO_SIDE_EFFECTS = ["MOV", "ADD", "SUB", "RSB", "MUL"]
 
-
 """
 Simple (non-aggressive) dead-code elimination using the algorithm from
 the SSA Optimization Algorithms handout.
